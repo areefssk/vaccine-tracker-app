@@ -5,6 +5,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ระบบติดตามวัคซีน รพ.ศรีสาคร</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0097a7">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -1071,8 +1074,12 @@ html,body{margin:0;padding:0;height:100%;font-family:'Sarabun',Tahoma,sans-serif
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 /* ── State ── */
-const TK='vaccine_session_token';
-const GAS_API_URL='https://script.google.com/macros/s/AKfycbwho-3ssE7T_wT3s_1tPgHzBgDTFL9AybIv42q0VjRUXmX8E3UsXSQ7r_0vyhdGxaDz/exec';
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('service-worker.js').catch(function(e){ console.log('SW register failed:', e); });
+  });
+}
+const TK='vaccine_session_token';const GAS_API_URL='https://script.google.com/macros/s/AKfycbwho-3ssE7T_wT3s_1tPgHzBgDTFL9AybIv42q0VjRUXmX8E3UsXSQ7r_0vyhdGxaDz/exec';
 const APP={token:null,user:null,childId:null,assignId:null,visitChildId:null,webAppUrl:'',asmCache:[],asmColorFilter:'ทั้งหมด',regColorFilter:'ทั้งหมด',clinicChildId:null,clinicSearchTimer:null,regSearchTimer:null,clinicVacRows:[]};
 
 function callApi(funcName, args) {
