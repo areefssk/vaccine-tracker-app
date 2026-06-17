@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<title>ความครอบคลุมวัคซีนเด็ก 0-5 ปี · รพ.ศรีสาคร</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'Sarabun',Tahoma,sans-serif;background:#f0f4f8;color:#1e293b;font-size:16px;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased}
+
+/* HERO - Indigo/Navy theme */
+.hero{background:linear-gradient(160deg,#003344 0%,#005566 45%,#007788 100%);color:#fff;overflow:hidden;position:relative}
+.hero::before{content:'';position:absolute;inset:0;opacity:.06;background-image:radial-gradient(circle,rgba(255,255,255,.9)1px,transparent 1px);background-size:22px 22px}
+.topbar{position:relative;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.1)}
+.topbar-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;width:100%}
+.t-icon{width:40px;height:40px;min-width:40px;background:linear-gradient(135deg,#00e5cc,#00bcd4);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.t-name{font-weight:700;font-size:16px;color:#fff}
+.t-sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.hero-body{position:relative;padding:22px 18px 30px}
+.live-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:6px 16px;font-size:13px;font-weight:600;margin-bottom:18px}
+.dot{width:9px;height:9px;background:#00e5cc;border-radius:50%;animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.htitle{font-size:clamp(26px,8vw,44px);font-weight:800;line-height:1.2;margin-bottom:8px;color:#fff}
+.hsub{font-size:15px;color:rgba(255,255,255,.65);margin-bottom:26px}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(min-width:768px){
+  .hero-body{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;padding:32px 24px 40px}
+  .hero-left{display:flex;flex-direction:column;justify-content:center}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .htitle{font-size:clamp(32px,4vw,52px)}
+  .hsub{margin-bottom:0}
+  .upd{margin-top:12px}
+}
+.kpi-box{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:18px;padding:18px 16px}
+.kpi-box.accent{background:rgba(0,229,204,.2);border-color:rgba(0,229,204,.35)}
+.kpi-box.full{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+.k-tag{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.75);margin-bottom:7px}
+.k-val{font-size:clamp(36px,10vw,54px);font-weight:800;line-height:1;color:#fff}
+.k-sub{font-size:13px;color:rgba(255,255,255,.6);margin-top:6px}
+.upd{font-size:13px;color:rgba(255,255,255,.45);margin-top:18px;display:flex;align-items:center;gap:5px}
+
+/* BODY */
+.wrap{padding:24px 20px 60px;max-width:1100px;margin:0 auto}
+
+/* PDPA */
+.pdpa{background:#e0f7fa;border:1px solid #80deea;border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;margin-bottom:4px}
+.pdpa-txt{font-size:13px;color:#006064;line-height:1.6}
+
+/* Section heading */
+.sh{display:flex;align-items:center;gap:9px;margin:24px 0 14px}
+.sh::before{content:'';width:4px;height:22px;background:linear-gradient(180deg,#00e5cc,#0097a7);border-radius:2px;flex-shrink:0}
+.sh-txt{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#0097a7}
+
+/* Color 4 cards */
+.c4{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cc{border-radius:16px;padding:18px 14px;text-align:center;border:1.5px solid rgba(0,0,0,.08)}
+.cn{font-size:clamp(32px,9vw,48px);font-weight:800;line-height:1}
+.cl{font-size:15px;font-weight:700;margin-top:6px}
+.cs{font-size:12px;opacity:.7;margin-top:4px}
+.cg{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#86efac}.cg .cn,.cg .cl{color:#065f46}
+.cyl{background:linear-gradient(135deg,#fef9c3,#fef08a);border-color:#fde047}.cyl .cn,.cyl .cl{color:#854d0e}
+.cy{background:linear-gradient(135deg,#fff7ed,#fed7aa);border-color:#fb923c}.cy .cn,.cy .cl{color:#9a3412}
+.cr{background:linear-gradient(135deg,#fef2f2,#fecaca);border-color:#fca5a5}.cr .cn,.cr .cl{color:#991b1b}
+
+/* Coverage card */
+.ccard{background:#fff;border-radius:16px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(79,70,229,.06)}
+.ctitle{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0097a7;margin-bottom:16px}
+
+/* Coverage row */
+.crow{margin-bottom:14px}
+.crow:last-child{margin-bottom:0}
+.chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.clbl{font-size:15px;color:#334155;font-weight:500}
+.cn2{font-size:12px;color:#94a3b8;margin-left:6px}
+.cpct{font-size:18px;font-weight:700}
+.bar{height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden}
+.bf{height:100%;border-radius:6px}
+
+/* Layouts */
+.twocol{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:600px){.twocol{grid-template-columns:1fr 1fr}}
+.c4{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(min-width:768px){.c4{grid-template-columns:repeat(4,1fr)}}
+.vacgrid{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:600px){.vacgrid{grid-template-columns:1fr 1fr}}
+
+/* Spinner */
+.spin-wrap{display:flex;justify-content:center;padding:56px 0}
+.spinner{width:44px;height:44px;border:3px solid #e2e8f0;border-top-color:#0097a7;border-radius:50%;animation:spin .8s linear infinite}
+
+/* Footer */
+footer{background:#003344;color:rgba(255,255,255,.4);text-align:center;padding:22px 18px;font-size:14px;line-height:1.8}
+footer strong{color:#00e5cc}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="topbar">
+    <div class="t-icon" style="padding:3px;position:relative;overflow:hidden;box-shadow:0 4px 12px rgba(52,211,153,.4)">
+      <img src="https://lh3.googleusercontent.com/d/1mC7rfXa3tkj-edlCjzIGy9AhCzYn_oFZ" style="width:100%;height:100%;border-radius:8px;object-fit:cover">
+      <div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,.25),transparent);pointer-events:none"></div>
+    </div>
+    <div>
+      <div class="t-name">โรงพยาบาลศรีสาคร</div>
+      <div class="t-sub">ระบบติดตามวัคซีนเด็ก 0-5 ปี</div>
+    </div>
+  </div>
+  <div class="hero-body">
+  <div class="hero-left">
+    <div class="live-badge"><span class="dot"></span><span id="liveBadge">กำลังโหลด...</span></div>
+    <div class="htitle">ความครอบคลุม<br>วัคซีนเด็ก 0-5 ปี</div>
+    <div class="hsub">อำเภอศรีสาคร · จังหวัดนราธิวาส · ข้อมูล ณ ปัจจุบัน</div>
+    <div class="upd">🕐 <span id="lastUpdated">กำลังโหลด...</span></div>
+  </div>
+  <div>
+    <div class="kpi-grid">
+      <div class="kpi-box">
+        <div class="k-tag">กลุ่มเป้าหมาย</div>
+        <div class="k-val" id="h-total">—</div>
+        <div class="k-sub">เด็กอายุ 0-5 ปี</div>
+      </div>
+      <div class="kpi-box accent">
+        <div class="k-tag">Coverage Rate</div>
+        <div class="k-val" id="h-rate">—</div>
+        <div class="k-sub">เขียว / ทั้งหมด</div>
+      </div>
+      <div class="kpi-box full">
+        <div>
+          <div class="k-tag">ต้องติดตาม</div>
+          <div class="k-val" id="h-follow">—</div>
+          <div class="k-sub">เหลืองอ่อน + เหลือง</div>
+        </div>
+        <div style="font-size:48px;opacity:.2">⚠️</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="mainContent" class="wrap">
+  <div class="spin-wrap"><div class="spinner"></div></div>
+</div>
+
+<footer>
+  <strong>โรงพยาบาลศรีสาคร</strong> · อำเภอศรีสาคร จังหวัดนราธิวาส<br>
+  ข้อมูลนี้เป็นสถิติรวมเพื่อความโปร่งใสด้านสาธารณสุข ไม่แสดงข้อมูลส่วนบุคคล
+</footer>
+
+<script>
+function fmtDate(iso){
+  if(!iso)return'-';
+  var d=new Date(iso),m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return d.getDate()+' '+m[d.getMonth()]+' '+(d.getFullYear()+543)+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+' น.';
+}
+function pc(p){return p>=80?'#059669':p>=60?'#d97706':'#dc2626';}
+function pb(p){return p>=80?'linear-gradient(90deg,#10b981,#059669)':p>=60?'linear-gradient(90deg,#eab308,#d97706)':'linear-gradient(90deg,#ef4444,#dc2626)';}
+function bar(p){return'<div class="bar"><div class="bf" style="width:'+p+'%;background:'+pb(p)+'"></div></div>';}
+function crow(lbl,n,p){return'<div class="crow"><div class="chead"><span class="clbl">'+lbl+'<span class="cn2">(n='+n+')</span></span><span class="cpct" style="color:'+pc(p)+'">'+p+'%</span></div>'+bar(p)+'</div>';}
+const GAS_API_URL='https://script.google.com/macros/s/AKfycbwho-3ssE7T_wT3s_1tPgHzBgDTFL9AybIv42q0VjRUXmX8E3UsXSQ7r_0vyhdGxaDz/exec';
+
+function callApi(funcName, args) {
+  return fetch(GAS_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ func: funcName, args: args || [] })
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(function(res) {
+    if (res && res.error === 'unauthorized') {
+      throw new Error('unauthorized');
+    }
+    return res;
+  });
+}
+
+callApi('clientGetPublicStats',[]).then(function(res){
+  if(!res||!res.success){
+    document.getElementById('mainContent').innerHTML='<p style="text-align:center;padding:48px;color:#94a3b8;font-size:16px">ไม่สามารถโหลดข้อมูลได้</p>';
+    return;
+  }
+  var s=res.summary,rate=s.total>0?Math.round(s.green/s.total*100):0;
+  document.getElementById('h-total').textContent=s.total;
+  document.getElementById('h-rate').textContent=rate+'%';
+  document.getElementById('h-follow').textContent=s.lightYellow+s.yellow;
+  document.getElementById('liveBadge').textContent='ข้อมูลสด · อัพเดทอัตโนมัติ';
+  document.getElementById('lastUpdated').textContent='ล่าสุด '+fmtDate(res.lastUpdated);
+
+  var covAge=(res.coverageByAge||[]).map(function(c){return crow('อายุครบ '+c.age+' ปี',c.total,c.percent);}).join('');
+  var covTambon=(res.coverageByTambon||[]).map(function(t){return crow('ต.'+t.tambon,t.total,t.percent);}).join('');
+  var covVac=(res.coverageByVaccine||[]).map(function(v){
+    return'<div class="crow"><div class="chead"><span style="font-size:14px;font-weight:600;color:#334155">'+v.code+'<span class="cn2">(n='+v.total+')</span></span><span style="font-size:16px;font-weight:700;color:'+pc(v.percent)+'">'+v.percent+'%</span></div>'+bar(v.percent)+'</div>';
+  }).join('');
+
+  document.getElementById('mainContent').innerHTML=
+    '<div class="pdpa" style="margin-top:6px"><div style="font-size:22px;flex-shrink:0">🔒</div><div class="pdpa-txt">ข้อมูลที่แสดงเป็นสถิติรวมเท่านั้น ไม่มีการเปิดเผยข้อมูลส่วนบุคคลของเด็กหรือผู้ปกครอง ตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</div></div>'+
+
+    '<div class="sh"><span class="sh-txt">สถานะการรับวัคซีน</span></div>'+
+    '<div class="c4">'+
+      '<div class="cc cg"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#34d399,#10b981);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 8px rgba(16,185,129,.3)">🟢</div><span style="font-size:12px;font-weight:700;color:#065f46">เขียว</span></div><div class="cn">'+s.green+'</div><div class="cs">ครบ/ค้าง ≤30 วัน</div></div>'+
+      '<div class="cc cyl"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#eab308);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 8px rgba(234,179,8,.3)">🟡</div><span style="font-size:12px;font-weight:700;color:#854d0e">เหลืองอ่อน</span></div><div class="cn">'+s.lightYellow+'</div><div class="cs">ค้างเกิน 30 วัน</div></div>'+
+      '<div class="cc cy"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#fb923c,#f97316);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 8px rgba(249,115,22,.3)">🟠</div><span style="font-size:12px;font-weight:700;color:#9a3412">เหลือง</span></div><div class="cn">'+s.yellow+'</div><div class="cs">บ่ายเบี่ยง</div></div>'+
+      '<div class="cc cr"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#f87171,#ef4444);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 8px rgba(239,68,68,.3)">🔴</div><span style="font-size:12px;font-weight:700;color:#991b1b">แดง</span></div><div class="cn">'+s.red+'</div><div class="cs">ปฏิเสธวัคซีน</div></div>'+
+    '</div>'+
+
+    '<div class="sh"><span class="sh-txt">Coverage ตามกลุ่มอายุและพื้นที่</span></div>'+
+    '<div class="twocol">'+
+      '<div class="ccard"><div class="ctitle">ตามอายุครบกำหนด</div>'+covAge+'</div>'+
+      '<div class="ccard"><div class="ctitle">ตามพื้นที่ (ตำบล)</div>'+(covTambon||'<p style="color:#94a3b8;text-align:center;padding:12px;font-size:14px">กำลังโหลด...</p>')+'</div>'+
+    '</div>'+
+
+    '<div class="sh"><span class="sh-txt">Coverage ตามชนิดวัคซีน</span></div>'+
+    '<div class="ccard"><div class="vacgrid">'+covVac+'</div></div>';
+
+}).catch(function(e){
+  document.getElementById('mainContent').innerHTML='<p style="text-align:center;padding:48px;color:#ef4444;font-size:16px">เกิดข้อผิดพลาด: '+e.message+'</p>';
+});
+</script>
+</body>
+</html>

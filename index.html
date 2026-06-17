@@ -1129,7 +1129,7 @@ function goView(v){
   if(v==='asm-map'){setTimeout(function(){if(_mapAsm)_mapAsm.invalidateSize();loadAsmMap();},150);}
 }
 
-function openPublic(){if(APP.webAppUrl)window.open(APP.webAppUrl+'?view=public','_blank');else alert('กรุณา Reload');}
+function openPublic(){window.open('public.html','_blank');}
 
 /* ── LOGIN ── */
 window.addEventListener('load',()=>{
