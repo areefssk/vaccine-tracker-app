@@ -1,0 +1,2311 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ระบบติดตามวัคซีน รพ.ศรีสาคร</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+/* ── Variables ── */
+:root{
+  --brand:#00bcd4;--brand2:#0097a7;--brand3:#006064;
+  --g:#10b981;--yl:#eab308;--y:#f97316;--r:#ef4444;
+  --sidebar-w:260px;
+}
+html,body{margin:0;padding:0;height:100%;font-family:'Sarabun',Tahoma,sans-serif;background:#f1f5f9;-webkit-font-smoothing:antialiased}
+/* ── Bootstrap overrides ── */
+.btn-primary{background:var(--brand2);border-color:var(--brand2)}
+.btn-primary:hover{background:var(--brand3);border-color:var(--brand3)}
+.btn-outline-primary{color:var(--brand2);border-color:var(--brand2)}
+.btn-outline-primary:hover{background:var(--brand2);color:#fff}
+.text-primary{color:var(--brand2)!important}
+.bg-primary{background:var(--brand2)!important}
+.form-control:focus,.form-select:focus{border-color:var(--brand);box-shadow:0 0 0 .2rem rgba(13,148,136,.15)}
+/* ── Layout ── */
+#appShell{display:flex;width:100%;min-height:100vh}
+#sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:linear-gradient(160deg,#003344 0%,#005566 45%,#007788 100%);
+  display:flex;flex-direction:column;position:fixed;
+  left:0;top:0;bottom:0;z-index:200;overflow-y:auto;
+}
+#main-content{margin-left:var(--sidebar-w);flex:1;min-width:0;display:flex;flex-direction:column}
+@media(max-width:768px){
+  #sidebar{transform:translateX(-100%);transition:transform .3s;box-shadow:4px 0 24px rgba(0,0,0,.3)}
+  #sidebar.show{transform:translateX(0)}
+  #main-content{margin-left:0}
+  #mobileBar{display:flex!important}
+}
+/* ── Sidebar ── */
+.sb-logo{padding:20px 16px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo-icon{width:40px;height:40px;background:linear-gradient(135deg,#00e5cc,#00bcd4);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.sb-logo-name{color:#fff;font-weight:700;font-size:14px;line-height:1.2}
+.sb-logo-sub{color:rgba(255,255,255,.5);font-size:11px}
+.sb-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
+.sb-user-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#34d399,#059669);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;flex-shrink:0}
+.sb-user-name{color:#fff;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-role{color:rgba(255,255,255,.5);font-size:11px}
+.sb-section{padding:12px 12px 4px;color:rgba(0,229,204,.45);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.sb-link{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  margin:2px 8px;border-radius:10px;color:rgba(255,255,255,.65);
+  font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;
+  transition:all .15s;border:none;background:none;width:calc(100% - 16px);text-align:left;
+}
+.sb-link:hover{background:rgba(255,255,255,.1);color:#fff}
+.sb-link.active{background:linear-gradient(135deg,rgba(0,229,204,.2),rgba(0,188,212,.12));color:#fff;border:1px solid rgba(0,229,204,.3)}
+.sb-link .bi{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.sb-badge{margin-left:auto;background:var(--r);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}
+.sb-logout{padding:12px 16px;margin-top:auto;border-top:1px solid rgba(255,255,255,.08)}
+/* ── Topbar ── */
+#mobileBar{display:none;background:var(--brand2);padding:12px 16px;align-items:center;gap:12px;position:sticky;top:0;z-index:150}
+.topbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:12px 20px 10px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+/* ── Cards ── */
+.stat-card{border:none;border-radius:16px;padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,.08);height:100%}
+.stat-num{font-size:34px;font-weight:800;line-height:1}
+.stat-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;opacity:.7}
+/* Status */
+.st-g{background:linear-gradient(135deg,#d1fae5,#a7f3d0);border:1px solid #6ee7b7;box-shadow:0 4px 12px rgba(16,185,129,.15)}
+.st-yl{background:linear-gradient(135deg,#fef9c3,#fde68a);border:1px solid #fcd34d;box-shadow:0 4px 12px rgba(234,179,8,.15)}
+.st-y{background:linear-gradient(135deg,#ffedd5,#fed7aa);border:1px solid #fdba74;box-shadow:0 4px 12px rgba(249,115,22,.15)}
+.st-r{background:linear-gradient(135deg,#fee2e2,#fecaca);border:1px solid #fca5a5;box-shadow:0 4px 12px rgba(239,68,68,.15)}
+.text-g{color:#065f46}.text-yl{color:#854d0e}.text-y{color:#9a3412}.text-r{color:#991b1b}
+.badge-g{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
+.badge-yl{background:#fef9c3;color:#854d0e;border:1px solid #fde68a}
+.badge-y{background:#ffedd5;color:#9a3412;border:1px solid #fed7aa}
+.badge-r{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.bl-g{border-left:4px solid var(--g)!important}
+.bl-yl{border-left:4px solid var(--yl)!important}
+.bl-y{border-left:4px solid var(--y)!important}
+.bl-r{border-left:4px solid var(--r)!important}
+.st-badge{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600}
+/* ── Child row ── */
+.child-row{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;border:1px solid #e2e8f0;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.child-row:hover{box-shadow:0 6px 20px rgba(79,70,229,.15);border-color:#a5b4fc;transform:translateY(-1px)}
+.child-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+/* ── Coverage bar ── */
+.cov-bar{height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.cov-fill{height:100%;border-radius:4px;transition:width .6s}
+/* ── Login ── */
+#loginPage{background:linear-gradient(135deg,#003344 0%,#005566 45%,#0097a7 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden}
+#loginPage::before{content:'💉';position:absolute;font-size:300px;opacity:.05;right:-60px;top:-60px;line-height:1}
+.login-card{background:#fff;border-radius:24px;padding:36px 32px;width:100%;max-width:400px;box-shadow:0 24px 60px rgba(0,0,0,.2);position:relative}
+/* ── Views ── */
+.view{display:none}.view.active{display:block}
+/* ── Loading ── */
+#overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.88);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#overlay.show{display:flex}
+/* ── Greeting ── */
+.greet{background:linear-gradient(135deg,#0097a7,#003344);border-radius:16px;padding:20px;color:#fff;position:relative;overflow:hidden}
+.greet::after{content:'💉';position:absolute;right:-8px;bottom:-12px;font-size:80px;opacity:.1;line-height:1}
+/* ── Misc ── */
+.empty-st{text-align:center;padding:48px 16px;color:#94a3b8}
+.chip{padding:6px 14px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s}
+.chip-all{background:var(--brand2);color:#fff;border-color:var(--brand2)}
+.chip-g{background:#d1fae5;color:#065f46;border-color:#a7f3d0}
+.chip-yl{background:#fef9c3;color:#854d0e;border-color:#fde68a}
+.chip-y{background:#ffedd5;color:#9a3412;border-color:#fed7aa}
+.chip-r{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.chip.dim{opacity:.55;filter:saturate(.5)}
+/* ── Vac edit row ── */
+.vac-edit-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:13px}
+/* Section heading in sidebar */
+.page-btn{min-width:36px;height:36px;border-radius:8px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+/* ── Charts ── */
+.donut-chart{position:relative;width:200px;height:200px;margin:0 auto}
+.donut-chart svg{transform:rotate(-90deg)}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut-pct{font-size:32px;font-weight:800;color:#059669;line-height:1}
+.donut-sub{font-size:11px;color:#64748b;margin-top:3px}
+.chart-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.leg-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:#f8fafc}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.bar-row{margin-bottom:10px}
+.bar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.bar-stack{display:flex;height:26px;border-radius:8px;overflow:hidden;gap:1px}
+.bar-seg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;min-width:0;overflow:hidden}
+.rank-badge{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- OVERLAY LOADING -->
+<div id="overlay"><div class="spinner-border text-primary" style="width:3rem;height:3rem"></div><div id="overlayTxt" class="text-muted" style="font-size:14px">กำลังโหลด...</div></div>
+
+<!-- ============================================================ -->
+<!-- LOGIN PAGE -->
+<!-- ============================================================ -->
+<div id="loginPage">
+  <div class="login-card">
+    <div style="width:70px;height:70px;border-radius:20px;margin:0 auto 16px;overflow:hidden;position:relative;box-shadow:0 8px 24px rgba(5,150,105,.4),0 0 0 3px rgba(52,211,153,.3),inset 0 1px 0 rgba(255,255,255,.3)">
+      <img src="https://lh3.googleusercontent.com/d/1mC7rfXa3tkj-edlCjzIGy9AhCzYn_oFZ" style="width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,.3),transparent);pointer-events:none"></div>
+    </div>
+    <h1 class="text-center fw-bold text-primary mb-1" style="font-size:20px">ระบบติดตามวัคซีน</h1>
+    <p class="text-center text-muted mb-5" style="font-size:12px">เด็ก 0-5 ปี · โรงพยาบาลศรีสาคร · นราธิวาส</p>
+    <div id="loginErr" class="alert alert-danger py-2 d-none text-sm"></div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold" style="font-size:12px;color:#374151">เลขบัตรประชาชน</label>
+      <div class="input-group">
+        <span class="input-group-text bg-light"><i class="bi bi-person-vcard-fill text-primary"></i></span>
+        <input id="citizenId" type="tel" inputmode="numeric" maxlength="13" class="form-control" placeholder="3-xxxx-xxxxx-xx-x" autocomplete="off">
+      </div>
+    </div>
+    <div class="mb-4">
+      <label class="form-label fw-semibold" style="font-size:12px;color:#374151">รหัส PIN 6 หลัก</label>
+      <div class="input-group">
+        <span class="input-group-text bg-light"><i class="bi bi-lock-fill text-primary"></i></span>
+        <input id="pinInput" type="password" inputmode="numeric" maxlength="6" class="form-control text-center fw-bold" style="letter-spacing:10px;font-size:18px" autocomplete="off">
+      </div>
+    </div>
+    <button id="loginBtn" onclick="doLogin()" class="btn btn-primary w-100 fw-bold py-2 mb-3">
+      <i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ
+    </button>
+    <p class="text-center text-muted mb-0" style="font-size:11px">ลืม PIN? ติดต่อแอดมิน รพ.ศรีสาคร</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- APP SHELL -->
+<!-- ============================================================ -->
+<div id="appShell" style="display:none">
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sb-logo d-flex align-items-center gap-3">
+      <div class="sb-logo-icon" style="padding:3px;box-shadow:0 4px 16px rgba(52,211,153,.5),0 0 0 2px rgba(52,211,153,.3),inset 0 1px 0 rgba(255,255,255,.2);position:relative;overflow:hidden">
+        <img src="https://lh3.googleusercontent.com/d/1mC7rfXa3tkj-edlCjzIGy9AhCzYn_oFZ" style="width:100%;height:100%;border-radius:10px;object-fit:cover">
+        <div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,.25),transparent);border-radius:10px 10px 0 0;pointer-events:none"></div>
+      </div>
+      <div><div class="sb-logo-name">รพ.ศรีสาคร</div><div class="sb-logo-sub">ระบบติดตามวัคซีน</div></div>
+    </div>
+    <!-- Admin menu -->
+    <div id="adminMenu" style="display:none">
+      <div class="sb-section">ภาพรวม</div>
+      <button class="sb-link active" id="navDash" onclick="goView('admin-dash')"><i class="bi bi-speedometer2"></i><span>Dashboard</span></button>
+      <div class="sb-section">ข้อมูล</div>
+      <button class="sb-link" id="navRegistry" onclick="goView('registry')"><i class="bi bi-people-fill"></i><span>ทะเบียนเด็ก</span></button>
+      <button class="sb-link" id="navClinic" onclick="goView('clinic')"><i class="bi bi-hospital-fill"></i><span>บันทึกวัคซีน (คลินิก)</span></button>
+      <button class="sb-link" id="navAddChild" onclick="goView('add-child')"><i class="bi bi-person-plus-fill"></i><span>เพิ่มเด็กใหม่</span></button>
+      <div class="sb-section">อื่นๆ</div>
+      <button class="sb-link" id="navMap" onclick="goView('map')"><i class="bi bi-map-fill"></i><span>แผนที่</span></button>
+      <button class="sb-link" onclick="openPublic()"><i class="bi bi-globe2"></i><span>Public Dashboard</span></button>
+    </div>
+    <!-- ASM menu -->
+    <div id="asmMenu" style="display:none">
+      <div class="sb-section">เมนูหลัก</div>
+      <button class="sb-link active" id="navAsmDash" onclick="goView('asm-dash')"><i class="bi bi-house-fill"></i><span>หน้าหลัก</span></button>
+      <button class="sb-link" id="navAsmChildren" onclick="goView('asm-children')"><i class="bi bi-people-fill"></i><span>รายชื่อเด็ก</span><span id="sbChildCount" class="sb-badge" style="display:none">0</span></button>
+      <button class="sb-link" id="navAsmMap" onclick="goView('asm-map')"><i class="bi bi-map-fill"></i><span>แผนที่หมู่บ้าน</span></button>
+      <button class="sb-link" id="navAsmTasks" onclick="goView('asm-tasks')"><i class="bi bi-clipboard2-check-fill"></i><span>งานของฉัน</span><span id="sbTaskCount" class="sb-badge" style="display:none">0</span></button>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user-av" id="sbAv">AD</div>
+      <div class="overflow-hidden"><div class="sb-user-name" id="sbName">-</div><div class="sb-user-role" id="sbRole">-</div></div>
+    </div>
+    <div class="sb-logout">
+      <button onclick="doLogout()" class="btn btn-sm w-100" style="background:rgba(0,229,204,.1);color:rgba(0,229,204,.85);border:1px solid rgba(0,229,204,.25);font-size:13px;border-radius:10px;padding:9px;font-weight:600">
+        <i class="bi bi-box-arrow-right me-1"></i>ออกจากระบบ
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div id="main-content">
+    <!-- Mobile topbar -->
+    <div id="mobileBar">
+      <button onclick="document.getElementById('sidebar').classList.toggle('show')" class="btn btn-sm text-white border-0 p-1"><i class="bi bi-list" style="font-size:22px"></i></button>
+      <span id="mobileTitle" class="text-white fw-semibold" style="font-size:15px">Dashboard</span>
+    </div>
+    <!-- Desktop topbar -->
+    <div class="topbar d-none d-md-flex">
+      <div id="topTitle" class="fw-bold" style="font-size:16px;color:#1e293b">Dashboard</div>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <span id="topName" class="text-muted" style="font-size:13px"></span>
+        <div id="topAv" class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width:34px;height:34px;font-size:12px;background:linear-gradient(135deg,#00e5cc,#00bcd4)">AD</div>
+      </div>
+    </div>
+
+    <!-- VIEWS -->
+    <div class="p-3 p-md-4">
+
+      <!-- ─── ADMIN DASHBOARD ─── -->
+      <div id="view-admin-dash" class="view active">
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-sm-3 d-flex">
+            <div class="stat-card w-100" style="background:linear-gradient(135deg,#0097a7,#00bcd4);color:#fff;position:relative;overflow:hidden;box-shadow:0 8px 28px rgba(0,151,167,.4)">
+              <div style="position:absolute;right:-18px;top:-18px;width:90px;height:90px;background:rgba(255,255,255,.12);border-radius:50%"></div>
+              <div style="position:absolute;right:30px;top:-30px;width:60px;height:60px;background:rgba(255,255,255,.06);border-radius:50%"></div>
+              <i class="bi bi-people-fill" style="font-size:26px;color:rgba(255,255,255,.55);margin-bottom:10px;display:block;position:relative"></i>
+              <div class="stat-num" style="position:relative;color:#fff" id="adTotal">-</div>
+              <div class="stat-lbl" style="color:rgba(255,255,255,.8);position:relative;margin-top:4px">กลุ่มเป้าหมาย</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:3px;position:relative">เด็กอายุ 0-5 ปี</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3 d-flex">
+            <div class="stat-card w-100" style="background:linear-gradient(135deg,#00796b,#009688);position:relative;overflow:hidden;box-shadow:0 8px 28px rgba(0,121,107,.4)">
+              <div style="position:absolute;right:-18px;top:-18px;width:90px;height:90px;background:rgba(255,255,255,.12);border-radius:50%"></div>
+              <div style="position:absolute;right:30px;top:-30px;width:60px;height:60px;background:rgba(255,255,255,.06);border-radius:50%"></div>
+              <i class="bi bi-capsule" style="font-size:26px;color:rgba(255,255,255,.55);margin-bottom:10px;display:block;position:relative"></i>
+              <div class="stat-num text-white" style="position:relative" id="adVacc">-</div>
+              <div class="stat-lbl" style="color:rgba(255,255,255,.8);position:relative;margin-top:4px">ฉีดครบตามเกณฑ์</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:3px;position:relative" id="adVaccPct">ไม่มีวัคซีนค้าง</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3 d-flex">
+            <div class="stat-card w-100" style="background:linear-gradient(135deg,#f87171,#ef4444);position:relative;overflow:hidden;box-shadow:0 8px 28px rgba(239,68,68,.35)">
+              <div style="position:absolute;right:-18px;top:-18px;width:90px;height:90px;background:rgba(255,255,255,.12);border-radius:50%"></div>
+              <div style="position:absolute;right:30px;top:-30px;width:60px;height:60px;background:rgba(255,255,255,.06);border-radius:50%"></div>
+              <i class="bi bi-exclamation-circle-fill" style="font-size:26px;color:rgba(255,255,255,.55);margin-bottom:10px;display:block;position:relative"></i>
+              <div class="stat-num text-white" style="position:relative" id="adFu">-</div>
+              <div class="stat-lbl" style="color:rgba(255,255,255,.8);position:relative;margin-top:4px">ต้องติดตามต่อ</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:3px;position:relative">เหลืองอ่อน + เหลือง</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3 d-flex">
+            <div class="stat-card w-100" style="background:linear-gradient(135deg,#fbbf24,#d97706);position:relative;overflow:hidden;box-shadow:0 8px 28px rgba(217,119,6,.35)">
+              <div style="position:absolute;right:-18px;top:-18px;width:90px;height:90px;background:rgba(255,255,255,.12);border-radius:50%"></div>
+              <div style="position:absolute;right:30px;top:-30px;width:60px;height:60px;background:rgba(255,255,255,.06);border-radius:50%"></div>
+              <i class="bi bi-pie-chart-fill" style="font-size:26px;color:rgba(255,255,255,.55);margin-bottom:10px;display:block;position:relative"></i>
+              <div class="stat-num text-white" style="position:relative" id="adCovRate">-</div>
+              <div class="stat-lbl" style="color:rgba(255,255,255,.8);position:relative;margin-top:4px">Coverage รวม</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:3px;position:relative">% เขียว / ทั้งหมด</div>
+            </div>
+          </div>
+        </div>
+        <!-- Color 4 -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-sm-3">
+            <div class="stat-card st-g" style="cursor:pointer">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#00e5cc,#00bcd4);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 10px rgba(16,185,129,.3);flex-shrink:0">🟢</div>
+                <span style="font-size:12px;font-weight:700;color:#065f46">เขียว</span>
+              </div>
+              <div class="stat-num text-g" id="adGreen">-</div>
+              <div class="stat-lbl text-g mb-2">ครบกำหนด / ค้าง ≤30 วัน</div>
+              <div style="height:6px;background:rgba(16,185,129,.15);border-radius:3px;overflow:hidden">
+                <div id="barGreen" style="height:100%;background:linear-gradient(90deg,#00e5cc,#00bcd4);border-radius:3px;width:0%;transition:width .6s"></div>
+              </div>
+              <div class="d-flex justify-content-between mt-1">
+                <span id="pctGreen" style="font-size:11px;font-weight:700;color:#00838f">0%</span>
+                <span style="font-size:11px;color:#94a3b8">จากทั้งหมด</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="stat-card st-yl" style="cursor:pointer">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#eab308);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 10px rgba(234,179,8,.3);flex-shrink:0">🟡</div>
+                <span style="font-size:12px;font-weight:700;color:#854d0e">เหลืองอ่อน</span>
+              </div>
+              <div class="stat-num text-yl" id="adLY">-</div>
+              <div class="stat-lbl text-yl mb-2">ค้างเกิน 30 วัน</div>
+              <div style="height:6px;background:rgba(234,179,8,.15);border-radius:3px;overflow:hidden">
+                <div id="barLY" style="height:100%;background:linear-gradient(90deg,#fbbf24,#eab308);border-radius:3px;width:0%;transition:width .6s"></div>
+              </div>
+              <div class="d-flex justify-content-between mt-1">
+                <span id="pctLY" style="font-size:11px;font-weight:700;color:#ca8a04">0%</span>
+                <span style="font-size:11px;color:#94a3b8">จากทั้งหมด</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="stat-card st-y" style="cursor:pointer">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fb923c,#f97316);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 10px rgba(249,115,22,.3);flex-shrink:0">🟠</div>
+                <span style="font-size:12px;font-weight:700;color:#9a3412">เหลือง</span>
+              </div>
+              <div class="stat-num text-y" id="adYellow">-</div>
+              <div class="stat-lbl text-y mb-2">บ่ายเบี่ยง / ขอเลื่อน</div>
+              <div style="height:6px;background:rgba(249,115,22,.15);border-radius:3px;overflow:hidden">
+                <div id="barYellow" style="height:100%;background:linear-gradient(90deg,#fb923c,#f97316);border-radius:3px;width:0%;transition:width .6s"></div>
+              </div>
+              <div class="d-flex justify-content-between mt-1">
+                <span id="pctYellow" style="font-size:11px;font-weight:700;color:#ea580c">0%</span>
+                <span style="font-size:11px;color:#94a3b8">จากทั้งหมด</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="stat-card st-r" style="cursor:pointer">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f87171,#ef4444);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 10px rgba(239,68,68,.3);flex-shrink:0">🔴</div>
+                <span style="font-size:12px;font-weight:700;color:#991b1b">แดง</span>
+              </div>
+              <div class="stat-num text-r" id="adRed">-</div>
+              <div class="stat-lbl text-r mb-2">ปฏิเสธวัคซีน</div>
+              <div style="height:6px;background:rgba(239,68,68,.15);border-radius:3px;overflow:hidden">
+                <div id="barRed" style="height:100%;background:linear-gradient(90deg,#f87171,#ef4444);border-radius:3px;width:0%;transition:width .6s"></div>
+              </div>
+              <div class="d-flex justify-content-between mt-1">
+                <span id="pctRed" style="font-size:11px;font-weight:700;color:#dc2626">0%</span>
+                <span style="font-size:11px;color:#94a3b8">จากทั้งหมด</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Improvement + Coverage -->
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-5">
+            <div class="card border-0 h-100" style="border-radius:16px;background:linear-gradient(135deg,#e0f7fa,#b2ebf2)">
+              <div class="card-body">
+                <div class="fw-bold mb-3" style="font-size:12px;color:#059669;text-transform:uppercase;letter-spacing:.06em;font-weight:700">📈 ดีขึ้นเดือนนี้</div>
+                <div class="row g-2 text-center">
+                  <div class="col-6"><div class="bg-white rounded-3 p-2"><div class="fw-bold" style="font-size:20px;color:#006064" id="impR2Y">0</div><div style="font-size:10px;color:#00838f">แดง→เหลือง</div></div></div>
+                  <div class="col-6"><div class="bg-white rounded-3 p-2"><div class="fw-bold" style="font-size:20px;color:#006064" id="impY2G">0</div><div style="font-size:10px;color:#00838f">เหลือง→เขียว</div></div></div>
+                  <div class="col-6"><div class="bg-white rounded-3 p-2"><div class="fw-bold" style="font-size:20px;color:#006064" id="impYL2G">0</div><div style="font-size:10px;color:#00838f">เ.อ่อน→เขียว</div></div></div>
+                  <div class="col-6"><div class="bg-white rounded-3 p-2"><div class="fw-bold" style="font-size:20px;color:#006064" id="impR2G">0</div><div style="font-size:10px;color:#00838f">แดง→เขียว</div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-7">
+            <div class="card border-0 h-100" style="border-radius:16px">
+              <div class="card-header bg-white border-0 fw-bold" style="font-size:13px;color:#0097a7;border-radius:16px 16px 0 0;font-weight:700">Coverage ตามอายุครบกำหนด</div>
+              <div class="card-body" id="adCovAge"><div class="text-muted" style="font-size:13px">กำลังโหลด...</div></div>
+            </div>
+          </div>
+        </div>
+        <!-- ─── CHARTS ─── -->
+        <div class="row g-3 mb-4">
+          <!-- Donut -->
+          <div class="col-12 col-md-5">
+            <div class="card border-0 h-100" style="border-radius:16px">
+              <div class="card-body d-flex flex-column justify-content-between">
+                <div class="fw-bold mb-3" style="font-size:12px;color:#0097a7;text-transform:uppercase;letter-spacing:.06em">📊 Coverage ภาพรวม</div>
+                <div class="donut-chart" style="width:200px;height:200px;margin:0 auto">
+                  <svg width="200" height="200" viewBox="0 0 200 200" id="donutSvg">
+                    <circle cx="100" cy="100" r="80" fill="none" stroke="#e2e8f0" stroke-width="30"/>
+                  </svg>
+                  <div class="donut-center">
+                    <div class="donut-pct" id="donutPct">—</div>
+                    <div class="donut-sub">Coverage</div>
+                  </div>
+                </div>
+                <div class="chart-legend" id="donutLegend"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Bar -->
+          <div class="col-12 col-md-7">
+            <div class="card border-0 h-100" style="border-radius:16px">
+              <div class="card-body">
+                <div class="fw-bold mb-2" style="font-size:12px;color:#0097a7;text-transform:uppercase;letter-spacing:.06em">🏘 สถานะแยกตามหมู่บ้าน</div>
+                <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+                  <span style="font-size:11px;display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#10b981;display:inline-block"></span>เขียว</span>
+                  <span style="font-size:11px;display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#eab308;display:inline-block"></span>เหลืองอ่อน</span>
+                  <span style="font-size:11px;display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#f97316;display:inline-block"></span>เหลือง</span>
+                  <span style="font-size:11px;display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#ef4444;display:inline-block"></span>แดง</span>
+                </div>
+                <div id="villageBarChart"><div class="text-muted" style="font-size:13px">กำลังโหลด...</div></div>
+                <div style="margin-top:10px;font-size:11px;color:#94a3b8;text-align:center">เรียงจากหมู่บ้านที่มีสถานะเขียวมากสุด</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Wednesday Alert -->
+        <div id="wedAlertCard" class="card border-0 mb-4 d-none" style="border-radius:16px;background:linear-gradient(135deg,#ede9fe,#dbeafe)">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <span class="fw-bold" style="font-size:14px;color:#4f46e5">💉 นัดฉีดวัคซีน / เยี่ยมบ้าน</span>
+                <span id="wedDateLabel" class="ms-2" style="font-size:12px;color:#6d28d9"></span>
+              </div>
+              <div class="d-flex gap-2">
+                <span id="wedVacCnt" class="badge" style="background:#4f46e5;color:#fff;font-size:11px;display:none"></span>
+                <span id="wedVisCnt" class="badge" style="background:#059669;color:#fff;font-size:11px;display:none"></span>
+              </div>
+            </div>
+            <div id="wedAlertList"></div>
+          </div>
+        </div>
+        <!-- Priority -->
+        <div class="card border-0" style="border-radius:16px">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center" style="border-radius:16px 16px 0 0">
+            <span class="fw-bold" style="font-size:14px">เด็กที่ต้องเร่งติดตาม <span id="adPriCnt" class="badge-r st-badge ms-1"></span></span>
+            <button class="btn btn-sm btn-primary py-1" onclick="goView('registry')"><i class="bi bi-search me-1"></i>ทะเบียนเด็ก</button>
+          </div>
+          <div class="card-body p-2" id="adPriList"><div class="empty-st"><div class="spinner-border spinner-border-sm text-primary"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ─── REGISTRY (Admin ทะเบียนเด็ก) ─── -->
+      <div id="view-registry" class="view">
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-sm-6"><input id="regSearch" type="text" class="form-control" placeholder="🔍 ค้นหาชื่อ หรือเลขบัตร..." oninput="onRegSearch()"></div>
+          <div class="col-12 col-sm-3"><select id="regVillage" class="form-select" onchange="loadRegistry()"><option value="ทั้งหมด">🗺 ทุกหมู่บ้าน</option></select></div>
+          <div class="col-12 col-sm-3">
+            <button class="btn w-100" style="background:linear-gradient(135deg,#00e5cc,#0097a7);color:#fff;border:none;font-weight:600" onclick="goView('add-child')"><i class="bi bi-person-plus-fill me-1"></i>เพิ่มเด็กใหม่</button>
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mb-3" id="regChips">
+          <span class="chip chip-all" onclick="setRegColor('ทั้งหมด',this)">ทั้งหมด</span>
+          <span class="chip chip-g" onclick="setRegColor('เขียว',this)">🟢 เขียว</span>
+          <span class="chip chip-yl" onclick="setRegColor('เหลืองอ่อน',this)">🟡 เหลืองอ่อน</span>
+          <span class="chip chip-y" onclick="setRegColor('เหลือง',this)">🟡 เหลือง</span>
+          <span class="chip chip-r" onclick="setRegColor('แดง',this)">🔴 แดง</span>
+        </div>
+        <div id="regCount" class="mb-2 fw-semibold" style="font-size:13px;color:#4f46e5"></div>
+        <div id="regList"></div>
+      </div>
+
+      <!-- ─── CLINIC (บันทึกวัคซีนคลินิก) ─── -->
+      <div id="view-clinic" class="view">
+        <div class="card border-0 mb-3" style="border-radius:16px">
+          <div class="card-body">
+            <h5 class="fw-bold mb-1">🏥 บันทึกการรับวัคซีนที่คลินิก</h5>
+            <p class="text-muted mb-3" style="font-size:13px">ค้นหาเด็กที่มารับวัคซีน แล้วบันทึกวัคซีนที่ฉีดวันนี้</p>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input id="clinicSearch" type="text" class="form-control" placeholder="พิมพ์ชื่อ หรือเลขบัตร..." oninput="onClinicSearch()">
+            </div>
+            <div id="clinicSearchResult"></div>
+          </div>
+        </div>
+        <!-- Selected child form -->
+        <div id="clinicForm" style="display:none">
+          <div class="card border-0 mb-3" style="border-radius:16px;background:linear-gradient(135deg,#f0fdf9,#d1fae5)">
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" id="clinicChildAv" style="width:48px;height:48px;font-size:16px;background:var(--brand2)">--</div>
+                <div>
+                  <div class="fw-bold" id="clinicChildName">-</div>
+                  <div class="text-muted" style="font-size:12px" id="clinicChildInfo">-</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card border-0 mb-3" style="border-radius:16px">
+            <div class="card-header bg-white fw-bold" style="font-size:14px;border-radius:16px 16px 0 0">💉 วัคซีนที่ฉีดวันนี้</div>
+            <div class="card-body" id="clinicVacList"></div>
+            <div class="card-footer bg-white" style="border-radius:0 0 16px 16px">
+              <button class="btn btn-sm btn-outline-primary" onclick="addClinicVacRow()"><i class="bi bi-plus-circle me-1"></i>เพิ่มวัคซีน</button>
+            </div>
+          </div>
+          <div class="card border-0 mb-3" style="border-radius:16px">
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-12 col-sm-6">
+                  <label class="form-label fw-semibold" style="font-size:12px">นัดครั้งต่อไป</label>
+                  <input type="date" id="clinicNextDate" class="form-control">
+                </div>
+                <div class="col-12 col-sm-6">
+                  <label class="form-label fw-semibold" style="font-size:12px">วัคซีนที่นัดครั้งต่อไป</label>
+                  <input type="text" id="clinicNotes" class="form-control" placeholder="เช่น DTP-HB-Hib2, MMR1">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-secondary flex-grow-1" onclick="clearClinic()"><i class="bi bi-x-circle me-1"></i>ล้างข้อมูล</button>
+            <button class="btn btn-primary flex-grow-1" onclick="submitClinic()"><i class="bi bi-check-circle me-1"></i>บันทึกวัคซีนทั้งหมด</button>
+          </div>
+        </div>
+
+      <!-- Timeline -->
+      <div id="clinicTimeline" class="mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-bold" style="font-size:13px;color:#059669">📋 ประวัติการบันทึกวัคซีน</span>
+          <button class="btn btn-sm btn-outline-primary py-0" onclick="loadClinicTimeline()"><i class="bi bi-arrow-clockwise me-1"></i>รีเฟรช</button>
+        </div>
+        <div id="timelineList"><div class="text-center py-3 text-muted" style="font-size:13px">กำลังโหลด...</div></div>
+      </div>
+      </div>
+
+      <!-- ─── ADD CHILD ─── -->
+      <div id="view-add-child" class="view">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#0097a7,#003344);border-radius:20px;padding:20px 24px;color:#fff;margin-bottom:20px;display:flex;align-items:center;gap:14px">
+          <div style="width:48px;height:48px;background:rgba(255,255,255,.2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">👶</div>
+          <div>
+            <div style="font-size:18px;font-weight:800">เพิ่มเด็กใหม่เข้าระบบ</div>
+            <div style="font-size:12px;opacity:.75;margin-top:2px">กรอกข้อมูลให้ครบถ้วนเพื่อติดตามวัคซีนได้อย่างมีประสิทธิภาพ</div>
+          </div>
+        </div>
+
+        <div id="addChildErr" class="alert alert-danger d-none py-2 mb-3"></div>
+
+        <!-- ส่วนที่ 1: ข้อมูลเด็ก -->
+        <div class="card border-0 mb-3" style="border-radius:18px;box-shadow:0 2px 12px rgba(5,150,105,.06)">
+          <div style="padding:14px 20px;border-bottom:1px solid #f0fdf4;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:18px 18px 0 0">
+            <div style="width:34px;height:34px;background:#d1fae5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px">👶</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#065f46">ข้อมูลเด็ก</div>
+              <div style="font-size:11px;color:#059669">ข้อมูลพื้นฐานของเด็ก</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-sm-8">
+                <label class="form-label fw-semibold" style="font-size:12px">เลขบัตรประชาชนเด็ก <span class="text-muted fw-normal">(ถ้ามี)</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light"><i class="bi bi-credit-card-2-front text-success"></i></span>
+                  <input type="tel" id="ac-cid" class="form-control" placeholder="1-xxxx-xxxxx-xx-x">
+                </div>
+              </div>
+              <div class="col-12 col-sm-4">
+                <label class="form-label fw-semibold" style="font-size:12px">สัญชาติ</label>
+                <select id="ac-nation" class="form-select">
+                  <option value="ไทย">ไทย</option>
+                  <option value="ไม่มีสัญชาติ">ไม่มีสัญชาติ</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
+                </select>
+              </div>
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-4 col-sm-2">
+                <label class="form-label fw-semibold" style="font-size:12px">คำนำหน้า</label>
+                <select id="ac-prefix" class="form-select">
+                  <option value="ด.ช.">ด.ช.</option>
+                  <option value="ด.ญ.">ด.ญ.</option>
+                </select>
+              </div>
+              <div class="col-8 col-sm-5">
+                <label class="form-label fw-semibold" style="font-size:12px">ชื่อ *</label>
+                <input type="text" id="ac-fn" class="form-control" placeholder="ชื่อจริง">
+              </div>
+              <div class="col-12 col-sm-5">
+                <label class="form-label fw-semibold" style="font-size:12px">นามสกุล *</label>
+                <input type="text" id="ac-ln" class="form-control" placeholder="นามสกุล">
+              </div>
+            </div>
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold" style="font-size:12px">เพศ *</label>
+                <div class="d-flex gap-2">
+                  <button type="button" id="btnMale" onclick="setGender('ชาย')" class="btn flex-grow-1 fw-semibold" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);border:2px solid #60a5fa;color:#1e40af;border-radius:10px;font-size:13px">👦 ชาย</button>
+                  <button type="button" id="btnFemale" onclick="setGender('หญิง')" class="btn flex-grow-1 fw-semibold" style="background:#fff;border:1.5px solid #d1d5db;color:#6b7280;border-radius:10px;font-size:13px">👧 หญิง</button>
+                </div>
+                <input type="hidden" id="ac-sex" value="ชาย">
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold" style="font-size:12px">วันเกิด *</label>
+                <input type="date" id="ac-birth" class="form-control">
+                <div style="font-size:11px;color:#94a3b8;margin-top:4px">อายุจะคำนวณอัตโนมัติ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 2: ที่อยู่ -->
+        <div class="card border-0 mb-3" style="border-radius:18px;box-shadow:0 2px 12px rgba(5,150,105,.06)">
+          <div style="padding:14px 20px;border-bottom:1px solid #dbeafe;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border-radius:18px 18px 0 0">
+            <div style="width:34px;height:34px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px">🏠</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#1e40af">ที่อยู่</div>
+              <div style="font-size:11px;color:#3b82f6">ที่อยู่ปัจจุบันของเด็ก</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-3 mb-3">
+              <div class="col-6 col-sm-3">
+                <label class="form-label fw-semibold" style="font-size:12px">บ้านเลขที่</label>
+                <input type="text" id="ac-house" class="form-control" placeholder="123/4">
+              </div>
+              <div class="col-6 col-sm-3">
+                <label class="form-label fw-semibold" style="font-size:12px">หมู่ที่ *</label>
+                <input type="text" id="ac-vno" class="form-control" placeholder="1">
+              </div>
+              <div class="col-6 col-sm-3">
+                <label class="form-label fw-semibold" style="font-size:12px">ตำบล *</label>
+                <select id="ac-tambon" class="form-select">
+                  <option value="ซากอ">ซากอ</option>
+                  <option value="ศรีสาคร">ศรีสาคร</option>
+                  <option value="กาหลง">กาหลง</option>
+                </select>
+              </div>
+              <div class="col-6 col-sm-3">
+                <label class="form-label fw-semibold" style="font-size:12px">อำเภอ</label>
+                <input type="text" class="form-control" value="ศรีสาคร" readonly style="background:#f8fafc;color:#94a3b8">
+              </div>
+            </div>
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold" style="font-size:12px">ชื่อหมู่บ้าน <span class="text-muted fw-normal">(ถ้ามี)</span></label>
+                <input type="text" id="ac-village-name" class="form-control" placeholder="ชื่อหมู่บ้าน">
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold" style="font-size:12px">จังหวัด</label>
+                <input type="text" class="form-control" value="นราธิวาส" readonly style="background:#f8fafc;color:#94a3b8">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 3: ผู้ปกครอง -->
+        <div class="card border-0 mb-3" style="border-radius:18px;box-shadow:0 2px 12px rgba(5,150,105,.06)">
+          <div style="padding:14px 20px;border-bottom:1px solid #fef9c3;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#fefce8,#fef9c3);border-radius:18px 18px 0 0">
+            <div style="width:34px;height:34px;background:#fef9c3;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px">👨‍👩‍👦</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#854d0e">ข้อมูลผู้ปกครอง</div>
+              <div style="font-size:11px;color:#ca8a04">สำหรับการติดต่อและนัดหมาย</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-sm-5">
+                <label class="form-label fw-semibold" style="font-size:12px">ชื่อผู้ปกครอง</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light"><i class="bi bi-person-fill text-warning"></i></span>
+                  <input type="text" id="ac-parent" class="form-control" placeholder="ชื่อ-นามสกุล">
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <label class="form-label fw-semibold" style="font-size:12px">ความสัมพันธ์</label>
+                <select id="ac-rel" class="form-select">
+                  <option>แม่</option>
+                  <option>พ่อ</option>
+                  <option>ปู่/ย่า/ตา/ยาย</option>
+                  <option>ผู้ปกครอง</option>
+                  <option>อื่นๆ</option>
+                </select>
+              </div>
+              <div class="col-6 col-sm-4">
+                <label class="form-label fw-semibold" style="font-size:12px">เบอร์โทรศัพท์</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light"><i class="bi bi-telephone-fill text-success"></i></span>
+                  <input type="tel" id="ac-phone" class="form-control" placeholder="08x-xxx-xxxx">
+                </div>
+              </div>
+            </div>
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold" style="font-size:12px">Line ID <span class="text-muted fw-normal">(ถ้ามี)</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light" style="color:#06c755"><i class="bi bi-chat-dots-fill"></i></span>
+                  <input type="text" id="ac-line" class="form-control" placeholder="Line ID สำหรับแจ้งนัด">
+                </div>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold" style="font-size:12px">เลขบัตรผู้ปกครอง <span class="text-muted fw-normal">(ถ้ามี)</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light"><i class="bi bi-credit-card-fill text-warning"></i></span>
+                  <input type="tel" id="ac-parent-cid" class="form-control" placeholder="สำหรับตรวจสอบสิทธิ์">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 4: ข้อมูลการดูแล -->
+        <div class="card border-0 mb-3" style="border-radius:18px;box-shadow:0 2px 12px rgba(5,150,105,.06)">
+          <div style="padding:14px 20px;border-bottom:1px solid #ede9fe;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:18px 18px 0 0">
+            <div style="width:34px;height:34px;background:#ede9fe;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px">🏥</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#4c1d95">ข้อมูลการดูแล</div>
+              <div style="font-size:11px;color:#7c3aed">อสม. ผู้รับผิดชอบและหมายเหตุ</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold" style="font-size:12px">อสม. ผู้รับผิดชอบ</label>
+                <select id="ac-asm" class="form-select">
+                  <option value="">-- เลือก อสม. --</option>
+                </select>
+                <div style="font-size:11px;color:#94a3b8;margin-top:4px">เลือก อสม. ที่ดูแลพื้นที่หมู่บ้านนี้</div>
+              </div>
+              <div class="col-12 col-sm-6">
+              <label class="form-label fw-semibold" style="font-size:12px">สถานะแรกเข้า</label>
+                <select id="ac-entry-status" class="form-select">
+                  <option value="new">ยังไม่ได้รับวัคซีน</option>
+                  <option value="partial">มีประวัติวัคซีนบางส่วน</option>
+                  <option value="transfer">ย้ายมาจากพื้นที่อื่น</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label class="form-label fw-semibold" style="font-size:12px">หมายเหตุพิเศษ</label>
+              <textarea id="ac-notes" class="form-control" rows="3" placeholder="เช่น มีโรคประจำตัว ข้อมูลพิเศษ หรือข้อควรระวัง..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="d-flex gap-3">
+          <button class="btn btn-secondary flex-grow-1 py-2" onclick="goView('registry')"><i class="bi bi-x-circle me-1"></i>ยกเลิก</button>
+          <button class="btn flex-grow-1 py-2 fw-bold" onclick="submitAddChild()" style="background:linear-gradient(135deg,#00e5cc,#0097a7);color:#003344;border:none;border-radius:12px;box-shadow:0 4px 12px rgba(0,151,167,.3)"><i class="bi bi-person-plus-fill me-2"></i>บันทึกข้อมูลเด็กใหม่</button>
+        </div>
+      </div>
+
+      <!-- ─── ASM DASHBOARD ─── -->
+      <div id="view-asm-dash" class="view">
+        <div class="greet mb-4"><div class="fw-bold" id="asmName" style="font-size:18px">-</div><div style="font-size:13px;opacity:.8;margin-top:2px" id="asmArea">-</div></div>
+        <div class="row g-3 mb-4">
+          <div class="col-4 col-sm-2"><div class="stat-card text-center" style="background:#f8fafc"><div class="stat-num" style="font-size:28px" id="asTotal">-</div><div class="stat-lbl text-muted">ทั้งหมด</div></div></div>
+          <div class="col-4 col-sm-2"><div class="stat-card st-g text-center"><div class="stat-num text-g" style="font-size:28px" id="asGreen">-</div><div class="stat-lbl text-g">🟢</div></div></div>
+          <div class="col-4 col-sm-2"><div class="stat-card st-yl text-center"><div class="stat-num text-yl" style="font-size:28px" id="asLY">-</div><div class="stat-lbl text-yl">🟡อ่อน</div></div></div>
+          <div class="col-4 col-sm-2"><div class="stat-card st-y text-center"><div class="stat-num text-y" style="font-size:28px" id="asYellow">-</div><div class="stat-lbl text-y">🟡</div></div></div>
+          <div class="col-4 col-sm-2"><div class="stat-card st-r text-center"><div class="stat-num text-r" style="font-size:28px" id="asRed">-</div><div class="stat-lbl text-r">🔴</div></div></div>
+          <div class="col-4 col-sm-2"><div class="stat-card text-center" style="background:#dbeafe;border:1px solid #bfdbfe"><div class="stat-num" style="font-size:28px;color:#1e40af" id="asFu">-</div><div class="stat-lbl" style="color:#1e40af">ตาม</div></div></div>
+        </div>
+        <div id="asmAlertBox" class="d-none alert d-flex gap-3 mb-3" style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;color:#991b1b"><span style="font-size:22px">⚠️</span><div><div class="fw-semibold" id="asmAlertTxt"></div><div style="font-size:12px">กดรายชื่อเด็กเพื่อดูและบันทึก</div></div></div>
+        <div class="card border-0" style="border-radius:16px">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center" style="border-radius:16px 16px 0 0">
+            <span class="fw-bold">เร่งด่วน — ต้องติดตาม</span>
+            <button class="btn btn-sm btn-primary py-1" onclick="goView('asm-children')"><i class="bi bi-people me-1"></i>ดูทั้งหมด</button>
+          </div>
+          <div class="card-body p-2" id="asmPriList"><div class="empty-st"><div class="spinner-border spinner-border-sm text-primary"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ─── ASM CHILDREN ─── -->
+      <div id="view-asm-children" class="view">
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <span class="chip chip-all" onclick="setAsmColor('ทั้งหมด',this)">ทั้งหมด</span>
+          <span class="chip chip-g dim" onclick="setAsmColor('เขียว',this)">🟢 เขียว</span>
+          <span class="chip chip-yl dim" onclick="setAsmColor('เหลืองอ่อน',this)">🟡 เหลืองอ่อน</span>
+          <span class="chip chip-y dim" onclick="setAsmColor('เหลือง',this)">🟡 เหลือง</span>
+          <span class="chip chip-r dim" onclick="setAsmColor('แดง',this)">🔴 แดง</span>
+        </div>
+        <div id="asmChildCount" class="text-muted mb-2" style="font-size:13px"></div>
+        <div id="asmChildList"></div>
+      </div>
+
+      <!-- ─── MAP VIEW ─── -->
+      <div id="view-map" class="view">
+        <!-- Tab switcher -->
+        <div class="d-flex mb-3" style="background:#fff;border-radius:12px;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+          <button id="mapTab1" onclick="switchMapTab(1)" class="btn flex-grow-1 fw-bold" style="border-radius:10px;font-size:13px;background:linear-gradient(135deg,#00e5cc,#0097a7);color:#fff;border:none">
+            🏘 ภาพรวมหมู่บ้าน
+          </button>
+          <button id="mapTab2" onclick="switchMapTab(2)" class="btn flex-grow-1 fw-bold" style="border-radius:10px;font-size:13px;background:none;color:#64748b;border:none">
+            📍 รายบุคคล
+          </button>
+        </div>
+        <div id="mapContent1">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold mb-0">🗺 แผนที่ครอบคลุมวัคซีน</h5>
+            <p class="text-muted mb-0" style="font-size:13px">สถานะเด็กแยกตามหมู่บ้าน · คลิกที่หมุดเพื่อดูรายละเอียด</p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <span class="badge rounded-pill" style="background:#10b981;padding:6px 12px">🟢 เขียว</span>
+            <span class="badge rounded-pill" style="background:#eab308;padding:6px 12px">🟡 เหลือง</span>
+            <span class="badge rounded-pill" style="background:#f97316;padding:6px 12px">🟠 บ่ายเบี่ยง</span>
+            <span class="badge rounded-pill" style="background:#ef4444;padding:6px 12px">🔴 แดง</span>
+          </div>
+        </div>
+        <!-- Summary chips -->
+        <div id="mapSummary" class="row g-2 mb-3"></div>
+        <!-- Map -->
+        <div class="card border-0 shadow-sm" style="border-radius:16px;overflow:hidden">
+          <div id="mapContainer" style="height:520px;z-index:1"></div>
+        </div>
+        <!-- Village table -->
+        <div class="card border-0 shadow-sm mt-3" style="border-radius:16px">
+          <div class="card-header bg-white fw-bold" style="font-size:14px;border-radius:16px 16px 0 0">สรุปตามหมู่บ้าน</div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0" id="villageTable" style="font-size:13px">
+                <thead class="table-light"><tr><th>หมู่</th><th>ตำบล</th><th>ทั้งหมด</th><th>🟢</th><th>🟡อ่อน</th><th>🟡</th><th>🔴</th><th>Coverage</th><th>GPS</th></tr></thead>
+                <tbody id="villageTableBody"><tr><td colspan="9" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div><!-- /mapContent1 -->
+      <div id="mapContent2" style="display:none">
+        <div class="d-flex gap-2 flex-wrap mb-3" id="mapGpsChips">
+          <span class="chip chip-all" onclick="setMapGpsColor('ทั้งหมด',this)">ทั้งหมด</span>
+          <span class="chip chip-r" onclick="setMapGpsColor('แดง',this)">🔴 แดง</span>
+          <span class="chip chip-yl" onclick="setMapGpsColor('เหลืองอ่อน',this)">🟡 เหลืองอ่อน</span>
+          <span class="chip chip-y" onclick="setMapGpsColor('เหลือง',this)">🟡 เหลือง</span>
+          <span class="chip chip-g" onclick="setMapGpsColor('เขียว',this)">🟢 เขียว</span>
+        </div>
+        <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;overflow:hidden">
+          <div id="mapIndividual" style="height:400px;z-index:1"></div>
+        </div>
+        <div id="mapGpsCount" class="text-muted mb-2" style="font-size:13px"></div>
+        <div id="mapGpsList"></div>
+      </div><!-- /mapContent2 -->
+      </div>
+
+
+      <!-- ─── MAP VIEW ─── -->
+      <div id="view-map" class="view">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold mb-0">🗺 แผนที่ครอบคลุมวัคซีน</h5>
+            <p class="text-muted mb-0" style="font-size:13px">สถานะเด็กแยกตามหมู่บ้าน · คลิกที่วงกลมเพื่อดูรายละเอียด</p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap align-items-center">
+            <span class="badge rounded-pill px-3 py-2" style="background:#10b981">🟢 เขียว</span>
+            <span class="badge rounded-pill px-3 py-2" style="background:#eab308">🟡 เหลืองอ่อน</span>
+            <span class="badge rounded-pill px-3 py-2" style="background:#f97316">🟠 เหลือง</span>
+            <span class="badge rounded-pill px-3 py-2" style="background:#ef4444">🔴 แดง</span>
+          </div>
+        </div>
+        <div id="mapSummary" class="row g-2 mb-3"></div>
+        <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;overflow:hidden">
+          <div id="mapContainer" style="height:500px;z-index:1"></div>
+        </div>
+        <div class="alert" style="background:#fef9c3;border:1px solid #fde68a;border-radius:12px;font-size:13px">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>หมายเหตุ:</strong> หมุดที่แสดง * คือตำแหน่งโดยประมาณตามตำบล
+          ถ้าต้องการตำแหน่งที่แม่นยำ ให้เพิ่มข้อมูล <code>gps_lat</code> และ <code>gps_lng</code> ในทะเบียนเด็ก
+        </div>
+        <div class="card border-0 shadow-sm" style="border-radius:16px">
+          <div class="card-header bg-white fw-bold" style="font-size:14px;border-radius:16px 16px 0 0">
+            สรุปตามหมู่บ้าน
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0" style="font-size:13px">
+                <thead class="table-light">
+                  <tr><th>หมู่</th><th>ตำบล</th><th>ทั้งหมด</th><th>🟢</th><th>🟡อ่อน</th><th>🟡</th><th>🔴</th><th>Coverage</th><th>GPS</th></tr>
+                </thead>
+                <tbody id="villageTableBody">
+                  <tr><td colspan="9" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+<!-- ─── ASM MAP ─── -->
+<div id="view-asm-map" class="view p-3 p-md-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h5 class="fw-bold mb-0">🗺 แผนที่หมู่บ้านฉัน</h5>
+      <p class="text-muted mb-0" style="font-size:13px" id="asmMapSubtitle">กำลังโหลด...</p>
+    </div>
+    <button class="btn btn-sm btn-outline-primary" onclick="loadAsmMap()"><i class="bi bi-arrow-clockwise me-1"></i>รีเฟรช</button>
+  </div>
+  <!-- Filter chips -->
+  <div class="d-flex gap-2 flex-wrap mb-3" id="asmMapChips">
+    <span class="chip chip-all" onclick="setAsmMapColor('ทั้งหมด',this)">ทั้งหมด</span>
+    <span class="chip chip-r" onclick="setAsmMapColor('แดง',this)">🔴 แดง</span>
+    <span class="chip chip-yl" onclick="setAsmMapColor('เหลืองอ่อน',this)">🟡 เหลืองอ่อน</span>
+    <span class="chip chip-y" onclick="setAsmMapColor('เหลือง',this)">🟡 เหลือง</span>
+    <span class="chip chip-g" onclick="setAsmMapColor('เขียว',this)">🟢 เขียว</span>
+    <span class="chip" style="background:#ede9fe;color:#4c1d95;border-color:#c4b5fd" onclick="setAsmMapColor('มีGPS',this)">📍 มี GPS</span>
+  </div>
+  <!-- Stats bar -->
+  <div class="row g-2 mb-3" id="asmMapStats"></div>
+  <!-- Map -->
+  <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;overflow:hidden">
+    <div id="mapAsm" style="height:360px;z-index:1"></div>
+  </div>
+  <!-- Count -->
+  <div id="asmMapCount" class="text-muted mb-2" style="font-size:13px"></div>
+  <!-- Child list -->
+  <div id="asmMapList"></div>
+</div>
+
+<!-- ─── ASM TASKS ─── -->
+      <div id="view-asm-tasks" class="view p-3 p-md-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">📋 งานของฉัน</h5>
+            <p class="text-muted mb-0" style="font-size:13px">รายการที่ได้รับมอบหมายจาก รพ.</p>
+          </div>
+          <button class="btn btn-sm btn-outline-primary" onclick="loadMyTasks()"><i class="bi bi-arrow-clockwise me-1"></i>รีเฟรช</button>
+        </div>
+        <div class="d-flex gap-2 mb-3 flex-wrap">
+          <span class="chip chip-all" onclick="filterMyTasks('all',this)">ทั้งหมด</span>
+          <span class="chip dim" style="background:#ede9fe;color:#4c1d95;border-color:#c4b5fd" onclick="filterMyTasks('visit',this)">🏠 เยี่ยมบ้าน</span>
+          <span class="chip dim" style="background:#ecfdf5;color:#065f46;border-color:#6ee7b7" onclick="filterMyTasks('vaccine',this)">💉 แจ้งนัดวัคซีน</span>
+        </div>
+        <div id="myTaskCount" class="text-muted mb-2" style="font-size:13px"></div>
+        <div id="myTaskList"><div class="text-center py-4"><div class="spinner-border text-primary"></div></div></div>
+      </div>
+    </div><!-- /views container -->
+  </div><!-- /main-content -->
+</div><!-- /appShell -->
+
+<!-- ── CHILD DETAIL MODAL ── -->
+<div class="modal fade" id="modalChild" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="modalChildTitle">รายละเอียดเด็ก</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modalChildBody">
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="text-muted mt-3" style="font-size:13px">กำลังโหลด...</p></div>
+      </div>
+      <div class="modal-footer border-0 pt-0" id="modalChildFoot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── VISIT MODAL ── -->
+<div class="modal fade" id="modalVisit" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-header border-0"><h5 class="modal-title fw-bold">📝 บันทึกการเยี่ยมบ้าน</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert py-2 mb-3" id="visitInfo" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;font-size:13px;font-weight:600;color:#1e40af"></div>
+        <div class="d-flex flex-column gap-2" id="visitOpts">
+          <div class="visit-opt border rounded-3 p-3 d-flex gap-3 align-items-center" onclick="pickVisit(this,'พบเด็ก ได้รับวัคซีนแล้ว')" style="cursor:pointer"><div class="vo-dot rounded-circle border border-2 flex-shrink-0" style="width:18px;height:18px"></div><span style="font-size:20px">✅</span><span style="font-size:13px;font-weight:500">พบเด็ก · ได้รับวัคซีนแล้ว</span></div>
+          <div class="visit-opt border rounded-3 p-3 d-flex gap-3 align-items-center" onclick="pickVisit(this,'พบเด็ก จะพาไปฉีด')" style="cursor:pointer"><div class="vo-dot rounded-circle border border-2 flex-shrink-0" style="width:18px;height:18px"></div><span style="font-size:20px">⏳</span><span style="font-size:13px;font-weight:500">พบเด็ก · จะพาไปฉีด</span></div>
+          <div class="visit-opt border rounded-3 p-3 d-flex gap-3 align-items-center" onclick="pickVisit(this,'พบเด็ก บ่ายเบี่ยง/ขอเลื่อน')" style="cursor:pointer"><div class="vo-dot rounded-circle border border-2 flex-shrink-0" style="width:18px;height:18px"></div><span style="font-size:20px">🔄</span><span style="font-size:13px;font-weight:500">พบเด็ก · บ่ายเบี่ยง/ขอเลื่อน</span></div>
+          <div class="visit-opt border rounded-3 p-3 d-flex gap-3 align-items-center" onclick="pickVisit(this,'ปฏิเสธ ไม่ยอมฉีด')" style="cursor:pointer"><div class="vo-dot rounded-circle border border-2 flex-shrink-0" style="width:18px;height:18px"></div><span style="font-size:20px">❌</span><span style="font-size:13px;font-weight:500">ปฏิเสธ ไม่ยอมฉีด</span></div>
+          <div class="visit-opt border rounded-3 p-3 d-flex gap-3 align-items-center" onclick="pickVisit(this,'เคยปฏิเสธ ตอนนี้ยอมรับ')" style="cursor:pointer"><div class="vo-dot rounded-circle border border-2 flex-shrink-0" style="width:18px;height:18px"></div><span style="font-size:20px">💚</span><span style="font-size:13px;font-weight:500">เคยปฏิเสธ · ตอนนี้ยอมรับ</span></div>
+          <div class="visit-opt border rounded-3 p-3 d-flex gap-3 align-items-center" onclick="pickVisit(this,'ไม่พบตัว')" style="cursor:pointer"><div class="vo-dot rounded-circle border border-2 flex-shrink-0" style="width:18px;height:18px"></div><span style="font-size:20px">❓</span><span style="font-size:13px;font-weight:500">ไม่พบตัว</span></div>
+        </div>
+        <label class="form-label fw-semibold mt-3" style="font-size:12px">หมายเหตุ</label>
+        <textarea id="visitNotes" class="form-control" rows="2"></textarea>
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+        <button id="visitBtn" class="btn btn-primary btn-sm" onclick="submitVisit()" disabled>บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT VAC MODAL ── -->
+<div class="modal fade" id="modalEditVac" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-header border-0"><h5 class="modal-title fw-bold">✏️ แก้ไขประวัติวัคซีน</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:12px">รหัสวัคซีน</label>
+          <select id="editVacCode" class="form-select">
+            <option>BCG</option><option>HB1</option><option>HB2</option>
+            <option>DTP-HB-Hib1</option><option>DTP-HB-Hib2</option><option>DTP-HB-Hib3</option>
+            <option>IPV1</option><option>IPV2</option>
+            <option>OPV1</option><option>OPV2</option><option>OPV3</option><option>OPV4</option><option>OPV5</option>
+            <option>MMR1</option><option>MMR2</option>
+            <option>DTP4</option><option>DTP5</option>
+            <option>LAJE1</option><option>LAJE2</option>
+            <option>Rota1</option><option>Rota2</option><option>Rota3</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:12px">วันที่ฉีด</label>
+          <input type="date" id="editVacDate" class="form-control">
+        </div>
+        <hr class="my-2">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:10px">📅 วันนัดครั้งต่อไป (ถ้ามี)</div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:12px">วันที่นัด</label>
+          <input type="date" id="editNextDate" class="form-control">
+        </div>
+        <div class="mb-0">
+          <label class="form-label fw-semibold" style="font-size:12px">วัคซีนที่นัด</label>
+          <input type="text" id="editNextVaccine" class="form-control" placeholder="เช่น DTP-HB-Hib2, MMR1">
+        </div>
+      </div>
+      <div class="modal-footer border-0 d-flex justify-content-between">
+        <button class="btn btn-danger btn-sm" onclick="deleteVaccRecord()"><i class="bi bi-trash me-1"></i>ลบข้อมูลนี้</button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+          <button class="btn btn-primary btn-sm" id="editVacBtn" onclick="submitEditVac()"><i class="bi bi-check-circle me-1"></i>บันทึก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GPS PIN MODAL ── -->
+<div class="modal fade" id="modalGPS" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">📍 ปักหมุด GPS บ้านเด็ก</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="alert m-3 py-2" style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;font-size:12px;color:#92400e">
+          <i class="bi bi-hand-index-thumb me-1"></i>
+          <strong>กดค้างบนแผนที่</strong> เพื่อปักหมุด หรือกด "ใช้ตำแหน่งปัจจุบัน"
+        </div>
+        <div id="gpsMap" style="height:280px;z-index:1"></div>
+        <div class="p-3">
+          <div class="d-flex justify-content-between align-items-center mb-3" style="background:#f8fafc;border-radius:10px;padding:10px 12px">
+            <div>
+              <div style="font-size:10px;color:#64748b">ตำแหน่งที่เลือก</div>
+              <div id="gpsCoordDisplay" style="font-size:13px;font-weight:700;color:#4f46e5">ยังไม่ได้เลือก</div>
+            </div>
+            <button onclick="clearGPSPin()" class="btn btn-sm" style="background:#ede9fe;color:#4c1d95;border:none;font-size:11px">ล้าง</button>
+          </div>
+          <button onclick="useMyLocation()" class="btn w-100 fw-bold mb-2" style="background:#ecfdf5;color:#065f46;border:1.5px solid #a7f3d0;border-radius:10px;font-size:13px">
+            <i class="bi bi-crosshair2 me-2"></i>ใช้ตำแหน่งปัจจุบัน (GPS โทรศัพท์)
+          </button>
+          <button onclick="submitGPS()" id="gpsSubmitBtn" class="btn w-100 fw-bold" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:10px;font-size:13px" disabled>
+            <i class="bi bi-geo-alt-fill me-2"></i>บันทึก GPS บ้านนี้
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ASSIGN MODAL ── -->
+<div class="modal fade" id="modalAssign" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0" style="border-radius:16px">
+      <div class="modal-header border-0"><h5 class="modal-title fw-bold">📋 มอบหมายงานติดตาม</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert py-2 mb-3 badge-r" id="assignInfo" style="border-radius:10px;font-size:13px;font-weight:600"></div>
+        <div class="mb-3"><label class="form-label fw-semibold" style="font-size:12px">มอบหมายให้ อสม.</label><select id="assignASM" class="form-select"><option value="">-- เลือก อสม. --</option></select></div>
+        <div class="mb-3"><label class="form-label fw-semibold" style="font-size:12px">วันที่นัด (เยี่ยม/ฉีดวัคซีน)</label><input type="date" id="assignDate" class="form-control"></div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:12px">ประเภทงาน</label>
+          <div class="d-flex gap-2">
+            <button id="btnTaskVisit" type="button" onclick="setTaskType('visit')" class="btn flex-grow-1 fw-semibold" style="background:#ede9fe;border:2px solid #6d28d9;color:#4c1d95;border-radius:10px;font-size:13px">🏠 เยี่ยมบ้าน</button>
+            <button id="btnTaskVaccine" type="button" onclick="setTaskType('vaccine')" class="btn flex-grow-1 fw-semibold" style="background:#fff;border:1.5px solid #d1d5db;color:#6b7280;border-radius:10px;font-size:13px">💉 แจ้งนัดวัคซีน</button>
+          </div>
+        </div>
+        <div class="mb-0"><label class="form-label fw-semibold" style="font-size:12px">หมายเหตุ</label><textarea id="assignNotes" class="form-control" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-primary btn-sm" id="assignBtn" onclick="submitAssign()"><i class="bi bi-send me-1"></i>มอบหมาย</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ── State ── */
+const TK='vaccine_session_token';
+const GAS_API_URL='https://script.google.com/macros/s/AKfycbwho-3ssE7T_wT3s_1tPgHzBgDTFL9AybIv42q0VjRUXmX8E3UsXSQ7r_0vyhdGxaDz/exec';
+const APP={token:null,user:null,childId:null,assignId:null,visitChildId:null,webAppUrl:'',asmCache:[],asmColorFilter:'ทั้งหมด',regColorFilter:'ทั้งหมด',clinicChildId:null,clinicSearchTimer:null,regSearchTimer:null,clinicVacRows:[]};
+
+function callApi(funcName, args) {
+  return fetch(GAS_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ func: funcName, args: args || [] })
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(function(res) {
+    if (res && res.error === 'unauthorized') {
+      throw new Error('unauthorized');
+    }
+    return res;
+  });
+}
+const ST={'เขียว':{bl:'bl-g',av:'#10b981',badge:'badge-g',txt:'text-g'},'เหลืองอ่อน':{bl:'bl-yl',av:'#eab308',badge:'badge-yl',txt:'text-yl'},'เหลือง':{bl:'bl-y',av:'#f97316',badge:'badge-y',txt:'text-y'},'แดง':{bl:'bl-r',av:'#ef4444',badge:'badge-r',txt:'text-r'}};
+const CL={'เขียว':'🟢 เขียว','เหลืองอ่อน':'🟡 เ.อ่อน','เหลือง':'🟡 เหลือง','แดง':'🔴 แดง'};
+
+function countUp(id, target, duration) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var start = 0;
+  var step = target / (duration / 16);
+  var timer = setInterval(function() {
+    start += step;
+    if (start >= target) { start = target; clearInterval(timer); }
+    el.textContent = Math.floor(start);
+  }, 16);
+}
+function ov(s,t){const el=document.getElementById('overlay');if(s)el.classList.add('show');else el.classList.remove('show');if(t)document.getElementById('overlayTxt').textContent=t;}
+function initials(n){const p=(n||'').replace(/^(ด\.ช\.|ด\.ญ\.)\s*/,'').trim().split(' ');return(p[0]?.charAt(0)||'')+(p[1]?.charAt(0)||'');}
+const pctC=p=>p>=80?'#059669':p>=60?'#d97706':'#dc2626';
+const pctB=p=>p>=80?'background:linear-gradient(90deg,#10b981,#059669)':p>=60?'background:linear-gradient(90deg,#f59e0b,#d97706)':'background:linear-gradient(90deg,#ef4444,#dc2626)';
+const covRow=(l,n,p)=>`<div class="mb-3"><div class="d-flex justify-content-between mb-1"><span style="font-size:13px;color:#374151">${l}<span class="text-muted ms-1 small">(n=${n})</span></span><span class="fw-bold" style="color:${pctC(p)}">${p}%</span></div><div class="cov-bar"><div class="cov-fill" style="${pctB(p)};width:${p}%"></div></div></div>`;
+
+function goView(v){
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.sb-link').forEach(e=>e.classList.remove('active'));
+  const el=document.getElementById('view-'+v);if(el)el.classList.add('active');
+  const nm=document.getElementById('nav'+v.split('-').map(s=>s.charAt(0).toUpperCase()+s.slice(1)).join(''));if(nm)nm.classList.add('active');
+  const titles={'admin-dash':'Dashboard','registry':'ทะเบียนเด็ก','clinic':'บันทึกวัคซีน (คลินิก)','add-child':'เพิ่มเด็กใหม่','asm-dash':'หน้าหลัก','asm-children':'รายชื่อเด็ก'};
+  const t=titles[v]||v;
+  ['topTitle','mobileTitle'].forEach(id=>document.getElementById(id).textContent=t);
+  document.getElementById('sidebar').classList.remove('show');
+  if(v==='registry'){_regPage=1;loadRegistry();loadVillageDD();}
+  if(v==='add-child'){loadAsmForAddChild();}
+  if(v==='clinic'){document.getElementById('clinicTimeline').style.display='';loadClinicTimeline();}else{document.getElementById('clinicTimeline').style.display='none';}
+  if(v==='asm-children'&&APP.user?.role==='asm')loadAsmChildren();
+  if(v==='asm-tasks')loadMyTasks();
+  if(v==='asm-map'){setTimeout(function(){if(_mapAsm)_mapAsm.invalidateSize();loadAsmMap();},150);}
+}
+
+function openPublic(){if(APP.webAppUrl)window.open(APP.webAppUrl+'?view=public','_blank');else alert('กรุณา Reload');}
+
+/* ── LOGIN ── */
+window.addEventListener('load',()=>{
+  const t=sessionStorage.getItem(TK);
+  if(t){
+    APP.token=t;ov(true,'กำลังตรวจสอบ...');
+    callApi('clientValidate',[t]).then(r=>{
+      ov(false);
+      if(r){APP.user=r.user;onLogin(r.user);}else{sessionStorage.removeItem(TK);}
+    }).catch(()=>{ov(false);sessionStorage.removeItem(TK);});
+  }
+  ['citizenId','pinInput'].forEach(id=>{const el=document.getElementById(id);el.addEventListener('input',()=>el.value=el.value.replace(/\D/g,''));el.addEventListener('keydown',e=>{if(e.key==='Enter'){if(id==='citizenId')document.getElementById('pinInput').focus();else doLogin();}});});
+});
+
+function doLogin(){
+  const cid=document.getElementById('citizenId').value.trim(),pin=document.getElementById('pinInput').value.trim();
+  const err=document.getElementById('loginErr'),btn=document.getElementById('loginBtn');
+  err.classList.add('d-none');
+  if(cid.length!==13){err.textContent='เลขบัตรประชาชนต้องมี 13 หลัก';err.classList.remove('d-none');return;}
+  if(pin.length!==6){err.textContent='PIN ต้องมี 6 หลัก';err.classList.remove('d-none');return;}
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>กำลังตรวจสอบ...';btn.disabled=true;
+  callApi('clientLogin',[cid,pin]).then(res=>{
+    btn.innerHTML='<i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ';btn.disabled=false;
+    if(res.success){APP.token=res.token;APP.user=res.user;sessionStorage.setItem(TK,res.token);document.getElementById('pinInput').value='';onLogin(res.user);}
+    else{err.textContent=res.error||'ข้อมูลไม่ถูกต้อง';err.classList.remove('d-none');}
+  }).catch(e=>{btn.innerHTML='<i class="bi bi-box-arrow-in-right me-2"></i>เข้าสู่ระบบ';btn.disabled=false;err.textContent='Error: '+e.message;err.classList.remove('d-none');});
+}
+
+function onLogin(u){
+  callApi('getWebAppUrl',[]).then(url=>{APP.webAppUrl=url||'';}).catch(()=>{});
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('appShell').style.display='flex';
+  ['sbAv','topAv'].forEach(id=>document.getElementById(id).textContent=initials(u.full_name)||'AD');
+  document.getElementById('sbName').textContent=u.full_name;
+  document.getElementById('sbRole').textContent=u.role==='admin'?'แอดมิน · รพ.ศรีสาคร':'อสม. หมู่บ้าน';
+  document.getElementById('topName').textContent=u.full_name;
+  if(u.role==='admin'){
+    document.getElementById('adminMenu').style.display='';
+    document.getElementById('navDash').classList.add('active');
+    loadAdminDash();
+  } else {
+    document.getElementById('asmMenu').style.display='';
+    document.getElementById('navAsmDash').classList.add('active');
+    document.getElementById('asmName').textContent='สวัสดี '+u.full_name;
+    document.getElementById('asmArea').textContent='หมู่บ้าน: '+(u.assigned_villages==='ALL'?'ทั้งหมด':u.assigned_villages);
+    goView('asm-dash');
+    loadAsmDash();
+  }
+  // load ASM list for assign modal
+  loadAsmListForAssign();
+}
+function doLogout(){
+  if(!confirm('ออกจากระบบ?'))return;
+  callApi('clientLogout',[APP.token]).catch(()=>{});
+  sessionStorage.removeItem(TK);
+  APP.token=null;APP.user=null;
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('loginPage').style.display='flex';
+  document.getElementById('citizenId').value='';
+  document.getElementById('pinInput').value='';
+  document.getElementById('loginErr').classList.add('d-none');
+  document.getElementById('adminMenu').style.display='none';
+  document.getElementById('asmMenu').style.display='none';
+}
+
+
+/* ── Format vaccine date ── */
+function fmtVacDate(d){
+  if(!d)return'-';
+  try{
+    var s=String(d).trim();
+    // รูปแบบ YYYY-MM-DD
+    if(/^\d{4}-\d{2}-\d{2}/.test(s)){
+      var p=s.split('-');
+      var m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      return parseInt(p[2])+' '+m[parseInt(p[1])-1]+' '+(parseInt(p[0])+543);
+    }
+    // รูปแบบ Date object string
+    var dt=new Date(d);
+    if(!isNaN(dt)){
+      var m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      return dt.getDate()+' '+m[dt.getMonth()]+' '+(dt.getFullYear()+543);
+    }
+    return s;
+  }catch(e){return String(d);}
+}
+
+/* ── ADMIN DASHBOARD ── */
+function loadAdminDash(){
+  ov(true,'กำลังโหลด Dashboard...');
+  callApi('clientGetAdminDashboard',[APP.token]).then(res=>{
+    ov(false);if(!res.success){console.error(res.error);return;}
+    const s=res.summary,imp=res.improvement;
+    countUp('adTotal', s.total, 800);
+    countUp('adVacc', s.vaccOnTime, 800);
+    countUp('adFu', s.followUp, 800);
+    countUp('adGreen', s.green, 800);
+    countUp('adLY', s.lightYellow, 800);
+    countUp('adYellow', s.yellow, 800);
+    countUp('adRed', s.red, 800);
+    document.getElementById('adVaccPct').textContent=s.total>0?Math.round(s.vaccOnTime/s.total*100)+'% ไม่มีวัคซีนค้าง':'';
+if(document.getElementById('adCovRate'))document.getElementById('adCovRate').textContent=s.total>0?Math.round(s.vaccOnTime/s.total*100)+'%':'-';
+    if(s.total>0){
+      document.getElementById('barGreen').style.width=Math.round(s.green/s.total*100)+'%';
+      document.getElementById('barLY').style.width=Math.round(s.lightYellow/s.total*100)+'%';
+      document.getElementById('barYellow').style.width=Math.round(s.yellow/s.total*100)+'%';
+      document.getElementById('barRed').style.width=Math.round(s.red/s.total*100)+'%';
+      document.getElementById('pctGreen').textContent=Math.round(s.green/s.total*100)+'%';
+      document.getElementById('pctLY').textContent=Math.round(s.lightYellow/s.total*100)+'%';
+      document.getElementById('pctYellow').textContent=Math.round(s.yellow/s.total*100)+'%';
+      document.getElementById('pctRed').textContent=Math.round(s.red/s.total*100)+'%';
+    }
+    document.getElementById('impR2Y').textContent=imp.redToYellow;
+    document.getElementById('impY2G').textContent=imp.yellowToGreen;
+    document.getElementById('impYL2G').textContent=imp.lightYellowToGreen;
+    document.getElementById('impR2G').textContent=imp.redToGreen;
+    document.getElementById('adCovAge').innerHTML=res.coverageByAge.map(c=>covRow(c.label,c.total,c.percent)).join('');
+    const redCnt=res.priorityList.filter(x=>x.color==='แดง').length;
+    const yelCnt=res.priorityList.filter(x=>x.color==='เหลือง').length;
+    const priTotal=res.priorityList.length;
+    const top5=res.priorityList.slice(0,5);
+    const redPct=priTotal>0?Math.round(redCnt/priTotal*100):0;
+    const yelPct=priTotal>0?Math.round(yelCnt/priTotal*100):0;
+    document.getElementById('adPriCnt').textContent=priTotal+' ราย';
+    document.getElementById('adPriList').innerHTML=priTotal===0?'<div class="empty-st">🎉 ไม่มีรายการเร่งด่วน</div>':`
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #f1f5f9">
+        <div style="padding:12px 16px;border-right:1px solid #f1f5f9">
+          <div style="font-size:11px;color:#64748b;margin-bottom:4px">🔴 แดง / ปฏิเสธ</div>
+          <div style="font-size:26px;font-weight:800;color:#991b1b;line-height:1">${redCnt}</div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:2px">ราย</div>
+          <div style="height:5px;background:#fecaca;border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;width:${redPct}%;background:#ef4444;border-radius:3px"></div></div>
+        </div>
+        <div style="padding:12px 16px">
+          <div style="font-size:11px;color:#64748b;margin-bottom:4px">🟡 เหลือง / บ่ายเบี่ยง</div>
+          <div style="font-size:26px;font-weight:800;color:#9a3412;line-height:1">${yelCnt}</div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:2px">ราย</div>
+          <div style="height:5px;background:#fed7aa;border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;width:${yelPct}%;background:#f97316;border-radius:3px"></div></div>
+        </div>
+      </div>
+      <div style="padding:8px 6px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:6px 8px 4px">เร่งด่วนที่สุด</div>
+        ${top5.map((ch,i)=>{const st=ST[ch.color]||ST['เขียว'];const badgeSt=ch.color==='แดง'?'background:#fee2e2;color:#991b1b':ch.color==='เหลือง'?'background:#ffedd5;color:#9a3412':'background:#fef9c3;color:#854d0e';return`<div onclick="openChild('${ch.child_id}')" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''"><span style="font-size:11px;color:#cbd5e1;width:16px;text-align:center;flex-shrink:0">${i+1}</span><div style="width:30px;height:30px;border-radius:50%;background:${st.av};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${initials(ch.name)}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ch.name}</div><div style="font-size:11px;color:#64748b">ม.${ch.village_no} ${ch.tambon||''} · ${ch.age_str}</div></div><span style="font-size:10px;padding:3px 9px;border-radius:99px;font-weight:600;flex-shrink:0;${badgeSt}">${CL[ch.color]||ch.color}</span></div>`;}).join('')}
+        ${priTotal>5?`<div style="padding:6px 8px;margin-top:4px;border-top:1px solid #f1f5f9"><button onclick="goView('registry')" style="width:100%;padding:9px;background:none;border:1px solid #e2e8f0;border-radius:10px;font-size:12px;color:#64748b;cursor:pointer;font-family:inherit">ดูรายการทั้งหมด ${priTotal} ราย →</button></div>`:''}
+      </div>`;  
+// ── Donut Chart ──
+var total=s.total||1;
+var circumference=2*Math.PI*80;
+var gPct=s.green/total,ylPct=s.lightYellow/total,yPct=s.yellow/total,rPct=s.red/total;
+var gLen=circumference*gPct,ylLen=circumference*ylPct,yLen=circumference*yPct,rLen=circumference*rPct;
+var svg=document.getElementById('donutSvg');
+var off=0;
+[{color:'#00bcd4',len:gLen},{color:'#eab308',len:ylLen},{color:'#f97316',len:yLen},{color:'#ef4444',len:rLen}].forEach(function(seg){
+  if(seg.len<=0)return;
+  var c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  c.setAttribute('cx','100');c.setAttribute('cy','100');c.setAttribute('r','80');
+  c.setAttribute('fill','none');c.setAttribute('stroke',seg.color);c.setAttribute('stroke-width','28');
+  c.setAttribute('stroke-dasharray',seg.len+' '+circumference);
+  c.setAttribute('stroke-dashoffset',-off);
+  svg.appendChild(c);
+  off+=seg.len;
+});
+document.getElementById('donutPct').textContent=Math.round(gPct*100)+'%';
+document.getElementById('donutLegend').innerHTML=
+  '<div class="leg-item"><div class="leg-dot" style="background:#00bcd4"></div><div><div style="font-size:11px;color:#64748b">เขียว</div><div style="font-size:15px;font-weight:700;color:#006064">'+s.green+'</div></div><span style="font-size:11px;color:#94a3b8;margin-left:auto">'+Math.round(gPct*100)+'%</span></div>'+
+  '<div class="leg-item"><div class="leg-dot" style="background:#eab308"></div><div><div style="font-size:11px;color:#64748b">เหลืองอ่อน</div><div style="font-size:15px;font-weight:700;color:#ca8a04">'+s.lightYellow+'</div></div><span style="font-size:11px;color:#94a3b8;margin-left:auto">'+Math.round(ylPct*100)+'%</span></div>'+
+  '<div class="leg-item"><div class="leg-dot" style="background:#f97316"></div><div><div style="font-size:11px;color:#64748b">เหลือง</div><div style="font-size:15px;font-weight:700;color:#ea580c">'+s.yellow+'</div></div><span style="font-size:11px;color:#94a3b8;margin-left:auto">'+Math.round(yPct*100)+'%</span></div>'+
+  '<div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div><div><div style="font-size:11px;color:#64748b">แดง</div><div style="font-size:15px;font-weight:700;color:#dc2626">'+s.red+'</div></div><span style="font-size:11px;color:#94a3b8;margin-left:auto">'+Math.round(rPct*100)+'%</span></div>';
+// ── Bar Chart หมู่บ้าน ──
+callApi('clientGetVillageStats',[APP.token]).then(function(vRes){
+  if(!vRes.success)return;
+  var villages=vRes.villages.sort(function(a,b){return b.green-a.green;});
+  var rankColors=villages.map(function(v,i){
+    var pct=v.total>0?Math.round(v.green/v.total*100):0;
+    return pct>=80?'#10b981':pct>=50?'#eab308':pct>=30?'#f97316':'#ef4444';
+  });
+  document.getElementById('villageBarChart').innerHTML=villages.map(function(v,i){
+    var t=v.total||1;
+    var gW=v.green>0?Math.max(Math.floor(v.green/t*100),1):0;
+    var ylW=v.lightYellow>0?Math.max(Math.floor(v.lightYellow/t*100),1):0;
+    var yW=v.yellow>0?Math.max(Math.floor(v.yellow/t*100),1):0;
+    var rW=v.red>0?Math.max(100-gW-ylW-yW,1):0;
+    return '<div class="bar-row">'+
+      '<div class="bar-header">'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<div class="rank-badge" style="background:'+rankColors[i]+'">'+(i+1)+'</div>'+
+          '<span style="font-size:12px;font-weight:600">ม.'+v.village_no+' ต.'+v.tambon+'</span>'+
+        '</div>'+
+        '<span style="font-size:11px;color:#94a3b8">'+v.total+' คน</span>'+
+      '</div>'+
+      '<div class="bar-stack">'+
+        (v.green>0?'<div class="bar-seg" style="width:'+gW+'%;background:linear-gradient(90deg,#34d399,#10b981)" title="เขียว: '+v.green+' คน">'+(gW>=8?v.green:'')+'</div>':'')+
+        (v.lightYellow>0?'<div class="bar-seg" style="width:'+ylW+'%;background:linear-gradient(90deg,#fbbf24,#eab308)" title="เหลืองอ่อน: '+v.lightYellow+' คน">'+(ylW>=8?v.lightYellow:'')+'</div>':'')+
+        (v.yellow>0?'<div class="bar-seg" style="width:'+yW+'%;background:linear-gradient(90deg,#fb923c,#f97316)" title="เหลือง: '+v.yellow+' คน">'+(yW>=8?v.yellow:'')+'</div>':'')+
+        (v.red>0?'<div class="bar-seg" style="width:'+rW+'%;background:linear-gradient(90deg,#f87171,#ef4444)" title="แดง: '+v.red+' คน">'+(rW>=8?v.red:'')+'</div>':'')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}).catch(function(){});
+  loadWednesdayAlert();
+  }).catch(e=>{ov(false);console.error(e);});
+}
+
+/* ── REGISTRY ── */
+var _regAllCache=[], _regPage=1, _regPerPage=20; let regCTimer=null;
+function setRegColor(c,el){APP.regColorFilter=c;document.querySelectorAll('#regChips .chip').forEach(x=>x.classList.toggle('dim',x!==el));el.classList.remove('dim');_regPage=1;loadRegistry();}
+function onRegSearch(){clearTimeout(regCTimer);regCTimer=setTimeout(function(){_regPage=1;loadRegistry();},500);}
+function loadRegistry(){
+  document.getElementById('regList').innerHTML='<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+  const s=document.getElementById('regSearch')?.value||'',v=document.getElementById('regVillage')?.value||'ทั้งหมด';
+  callApi('clientGetAdminChildList',[APP.token,s,v,APP.regColorFilter]).then(function(res){
+    _regAllCache=res.children||[];
+    renderRegPage();
+  }).catch(function(){});
+}
+function renderRegPage(){
+  var total=_regAllCache.length;
+  var totalPages=Math.max(1,Math.ceil(total/_regPerPage));
+  if(_regPage>totalPages)_regPage=totalPages;
+  var start=(_regPage-1)*_regPerPage;
+  var end=Math.min(start+_regPerPage,total);
+  var pageItems=_regAllCache.slice(start,end);
+  document.getElementById('regCount').textContent=total+' คน · หน้า '+_regPage+'/'+totalPages;
+  document.getElementById('regList').innerHTML=pageItems.length?
+    pageItems.map(function(c){var st=ST[c.color]||ST['เขียว'];return'<div class="child-row '+st.bl+'" onclick="openChild(\''+c.child_id+'\')"><div class="child-av" style="background:'+st.av+'">'+initials(c.name)+'</div><div class="flex-grow-1"><div style="font-size:14px;font-weight:600">'+c.name+'</div><div class="text-muted" style="font-size:11px">'+c.age_str+' · ม.'+c.village_no+' '+(c.tambon||'')+' · '+(c.detail||'')+'</div></div><span class="st-badge '+st.badge+' ms-2">'+(CL[c.color]||c.color)+'</span></div>';}).join('')+renderPagination(totalPages):
+    '<div class="empty-st">ไม่พบข้อมูล</div>';
+}
+function renderPagination(totalPages){
+  if(totalPages<=1)return'';
+  var btns='<div class="d-flex justify-content-center align-items-center gap-1 mt-3 pb-2 flex-wrap">';
+  btns+='<button class="btn btn-sm page-btn '+(_regPage===1?'btn-light disabled':'btn-outline-primary')+'" onclick="goRegPage('+(_regPage-1)+')">&#8249;</button>';
+  var pages=[];
+  if(totalPages<=7){for(var i=1;i<=totalPages;i++)pages.push(i);}
+  else{
+    pages=[1];
+    if(_regPage>3)pages.push('...');
+    if(_regPage>2)pages.push(_regPage-1);
+    if(_regPage>1&&_regPage<totalPages)pages.push(_regPage);
+    if(_regPage<totalPages-1)pages.push(_regPage+1);
+    if(_regPage<totalPages-2)pages.push('...');
+    pages.push(totalPages);
+    pages=[...new Set(pages)];
+  }
+  pages.forEach(function(p){
+    if(p==='...'){btns+='<span class="px-1 text-muted" style="font-size:13px">...</span>';}
+    else{btns+='<button class="btn btn-sm page-btn '+(p===_regPage?'btn-primary':'btn-outline-primary')+'" onclick="goRegPage('+p+')">'+p+'</button>';}
+  });
+  btns+='<button class="btn btn-sm page-btn '+(_regPage===totalPages?'btn-light disabled':'btn-outline-primary')+'" onclick="goRegPage('+(_regPage+1)+')">&#8250;</button>';
+  btns+='</div>';
+  return btns;
+}
+function goRegPage(p){
+  var totalPages=Math.ceil(_regAllCache.length/_regPerPage);
+  if(p<1||p>totalPages)return;
+  _regPage=p;
+  renderRegPage();
+  document.getElementById('regList').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function loadVillageDD(){
+  const sel=document.getElementById('regVillage');if(sel.options.length>1)return;
+  callApi('clientGetVillageList',[APP.token]).then(res=>{(res.villages||[]).forEach(v=>sel.append(new Option('ม.'+v.vno+' ต.'+v.tambon,v.key)));}).catch(()=>{});
+}
+
+/* ── ASM ── */
+function loadAsmDash(){
+  ov(true,'กำลังโหลด...');
+  callApi('clientGetASMDashboard',[APP.token]).then(res=>{
+    ov(false);if(!res.success)return;
+    const s=res.summary;
+    document.getElementById('asTotal').textContent=s.total;
+    document.getElementById('asGreen').textContent=s.green;
+    document.getElementById('asLY').textContent=s.lightYellow;
+    document.getElementById('asYellow').textContent=s.yellow;
+    document.getElementById('asRed').textContent=s.red;
+    document.getElementById('asFu').textContent=s.followUp;
+    if(s.followUp>0){document.getElementById('asmAlertBox').classList.remove('d-none');document.getElementById('asmAlertTxt').textContent='มีรายการต้องติดตาม '+s.followUp+' ราย';}
+    const cnt=document.getElementById('sbChildCount');cnt.textContent=s.total;cnt.style.display='';
+    document.getElementById('asmPriList').innerHTML=res.priorityList?.length?res.priorityList.map(c=>{const st=ST[c.color]||ST['เขียว'];return`<div class="child-row ${st.bl}" onclick="openChild('${c.child_id}')"><div class="child-av" style="background:${st.av}">${initials(c.name)}</div><div class="flex-grow-1"><div style="font-size:14px;font-weight:600">${c.name}</div><div class="text-muted" style="font-size:11px">ม.${c.village_no} · ${c.age_str} · ${c.overdue_vaccine||''}</div></div><span class="st-badge ${st.badge}">${CL[c.color]||c.color}</span></div>`;}).join(''):'<div class="empty-st">🎉 ไม่มีรายการเร่งด่วน</div>';
+  }).catch(e=>ov(false));
+}
+function loadAsmChildren(){
+  document.getElementById('asmChildList').innerHTML='<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+  callApi('clientGetChildrenList',[APP.token,'ทั้งหมด']).then(res=>{APP.asmCache=res.children||[];renderAsmList(APP.asmCache);}).catch(()=>{});
+}
+function setAsmColor(c,el){APP.asmColorFilter=c;document.querySelectorAll('#view-asm-children .chip').forEach(x=>x.classList.toggle('dim',x!==el));el.classList.remove('dim');renderAsmList(c==='ทั้งหมด'?APP.asmCache:APP.asmCache.filter(x=>x.color===c));}
+function renderAsmList(ch){
+  document.getElementById('asmChildCount').textContent=ch.length+' คน';
+  document.getElementById('asmChildList').innerHTML=ch.length?ch.map(c=>{const st=ST[c.color]||ST['เขียว'];return`<div class="child-row ${st.bl}" onclick="openChild('${c.child_id}')"><div class="child-av" style="background:${st.av}">${initials(c.name)}</div><div class="flex-grow-1"><div style="font-size:14px;font-weight:600">${c.name}</div><div class="text-muted" style="font-size:11px">${c.age_str} · ม.${c.village_no} ${c.tambon||''} · ${c.detail||c.overdue_vaccine||''}</div></div><span class="st-badge ${st.badge}">${CL[c.color]||c.color}</span></div>`;}).join(''):'<div class="empty-st">ไม่พบข้อมูล</div>';
+}
+
+/* ── CHILD DETAIL MODAL ── */
+function openChild(id){
+  APP.childId=id;
+  document.getElementById('modalChildTitle').textContent='รายละเอียดเด็ก';
+  document.getElementById('modalChildBody').innerHTML='<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="text-muted mt-3" style="font-size:13px">กำลังโหลด...</p></div>';
+  document.getElementById('modalChildFoot').innerHTML='';
+  new bootstrap.Modal(document.getElementById('modalChild')).show();
+  // โหลดวันนัดหลัง render เสร็จ
+  callApi('clientGetNextAppointment',[APP.token, id]).then(function(appt) {
+    var box = document.getElementById('nextApptBox');
+    if (!appt || !appt.found) return;
+    if (!box) {
+      // รอ render แล้วลองใหม่
+      setTimeout(function() {
+        var b = document.getElementById('nextApptBox');
+        if (!b) return;
+        // วางโค้ดแสดงผลซ้ำ
+        var daysColor = appt.days_left <= 3 ? '#ef4444' : appt.days_left <= 7 ? '#f97316' : '#4f46e5';
+        var daysText = appt.days_left < 0 ? 'เกินกำหนด '+Math.abs(appt.days_left)+' วัน' : 'อีก '+appt.days_left+' วัน';
+        b.innerHTML = '<div style="background:linear-gradient(135deg,#ede9fe,#dbeafe);border-radius:12px;padding:12px 14px;margin-bottom:14px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#4f46e5;margin-bottom:8px">📅 นัดครั้งต่อไป</div><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:16px;font-weight:800;color:#1e293b">'+appt.due_date+'</div>'+(appt.vaccine_name?'<div style="font-size:12px;color:#4f46e5;font-weight:600;margin-top:2px">💉 '+appt.vaccine_name+'</div>':'')+'</div><div style="text-align:right"><div style="font-size:22px;font-weight:800;color:'+daysColor+'">'+Math.abs(appt.days_left)+'</div><div style="font-size:10px;color:'+daysColor+'">'+daysText+'</div></div></div></div>';
+        b.style.display = '';
+      }, 3000);
+      return;
+    }
+    var daysColor = appt.days_left <= 3 ? '#ef4444' : appt.days_left <= 7 ? '#f97316' : '#4f46e5';
+    var daysText  = appt.days_left < 0 ? 'เกินกำหนด '+Math.abs(appt.days_left)+' วัน' : 'อีก '+appt.days_left+' วัน';
+    box.innerHTML =
+      '<div style="background:linear-gradient(135deg,#ede9fe,#dbeafe);border-radius:12px;padding:12px 14px;margin-bottom:14px">' +
+        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#4f46e5;margin-bottom:8px">📅 นัดครั้งต่อไป</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center">' +
+          '<div>' +
+            '<div style="font-size:16px;font-weight:800;color:#1e293b">'+appt.due_date+'</div>' +
+            (appt.vaccine_name?'<div style="font-size:12px;color:#4f46e5;font-weight:600;margin-top:2px">💉 '+appt.vaccine_name+'</div>':'') +
+          '</div>' +
+          '<div style="text-align:right">' +
+            '<div style="font-size:22px;font-weight:800;color:'+daysColor+'">'+Math.abs(appt.days_left)+'</div>' +
+            '<div style="font-size:10px;color:'+daysColor+'">'+daysText+'</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    box.style.display = '';
+  }).catch(function(){});
+  callApi('clientGetChildDetail',[APP.token,id]).then(res=>{
+    if(!res.success){document.getElementById('modalChildBody').innerHTML='<div class="text-danger text-center py-4">'+res.error+'</div>';return;}
+    const c=res.child,color=res.color,vs=res.vaccineStatus,isAdmin=APP.user?.role==='admin';
+    const headerBg={'เขียว':'#ecfdf5','เหลืองอ่อน':'#fef9c3','เหลือง':'#ffedd5','แดง':'#fee2e2'}[color]||'#f1f5f9';
+    const headerText={'เขียว':'#065f46','เหลืองอ่อน':'#854d0e','เหลือง':'#9a3412','แดง':'#991b1b'}[color]||'#374151';
+    const avColor={'เขียว':'#10b981','เหลืองอ่อน':'#eab308','เหลือง':'#f97316','แดง':'#ef4444'}[color]||'#94a3b8';
+    const receivedCount=vs.filter(v=>v.received).length;
+    const overdueCount=vs.filter(v=>v.is_due&&!v.received).length;
+    const pct=vs.length>0?Math.round(receivedCount/vs.length*100):0;
+    document.getElementById('modalChildTitle').textContent=c.name;
+
+    const vacRows=vs.map(v=>{
+      const done=v.received,due=v.is_due;
+      let dotColor='#d1d5db',dotIcon='–';
+      if(done){dotColor='#10b981';dotIcon='✓';}
+      else if(due){dotColor='#ef4444';dotIcon='✗';}
+      const editBtn=isAdmin&&done?`<button class="btn btn-sm btn-outline-secondary py-0 px-1 ms-auto" style="font-size:10px;min-width:26px" onclick="openEditVac('${c.child_id}','${v.vaccine_code}','${v.receive_date||''}')"><i class="bi bi-pencil"></i></button>`:'';
+      return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid #f8fafc;${!due?'opacity:.4':''}">
+        <div style="width:22px;height:22px;border-radius:50%;background:${dotColor};display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700;flex-shrink:0">${dotIcon}</div>
+        <div style="flex:1;font-size:13px;color:#1e293b">${v.vaccine_code}<span style="font-size:11px;color:#94a3b8;margin-left:6px">(${v.due_age_str})</span></div>
+        <div style="font-size:11px;color:${done?'#10b981':due?'#ef4444':'#94a3b8'}">${done?fmtVacDate(v.receive_date):(due?'ค้าง':'ยังไม่ถึง')}</div>
+        ${editBtn}
+      </div>`;
+    }).join('');
+
+    document.getElementById('modalChildBody').innerHTML=`
+      <div id="nextApptBox" style="display:none"></div>
+      <div style="background:${headerBg};border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:14px;border:1.5px solid ${avColor}30">
+        <div style="width:52px;height:52px;border-radius:50%;background:${avColor};display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:18px;flex-shrink:0">${initials(c.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:16px;color:${headerText};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
+          <div style="font-size:12px;color:${headerText};opacity:.8;margin-top:3px">${c.age_str} · ${c.gender} · ${c.address}</div>
+        </div>
+        <span style="background:${avColor};color:#fff;font-size:12px;font-weight:600;padding:5px 14px;border-radius:99px;white-space:nowrap;flex-shrink:0">${CL[color]||color}</span>
+      </div>
+      <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:7px">
+          <span>วัคซีนที่ได้รับแล้ว <span style="color:#ef4444;margin-left:8px">${overdueCount > 0 ? overdueCount+' เข็มค้าง' : ''}</span></span>
+          <span style="font-weight:700;color:#1e293b">${receivedCount} / ${vs.length} เข็ม</span>
+        </div>
+        <div style="height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${avColor};border-radius:5px;transition:width .6s"></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:8px">
+          <span style="font-size:11px;color:#10b981"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:4px"></span>รับแล้ว ${receivedCount}</span>
+          <span style="font-size:11px;color:#ef4444"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:4px"></span>ค้าง ${overdueCount}</span>
+          <span style="font-size:11px;color:#94a3b8"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#d1d5db;margin-right:4px"></span>ยังไม่ถึง ${vs.length-receivedCount-overdueCount}</span>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:10px">ข้อมูลเด็กและผู้ปกครอง</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+          <div><div style="color:#94a3b8;font-size:11px">ผู้ปกครอง (${c.parent_rel||''})</div><div style="font-weight:500;color:#1e293b;margin-top:2px">${c.parent_name||'-'}</div></div>
+          <div><div style="color:#94a3b8;font-size:11px">โทรศัพท์</div><div style="font-weight:500;color:#4f46e5;margin-top:2px">${c.parent_phone||'-'}</div></div>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:12px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b">ประวัติวัคซีน</div>
+          ${isAdmin?'<div style="font-size:10px;color:#94a3b8">✏️ = แก้ไขวันที่</div>':''}
+        </div>
+        ${vacRows}
+      </div>`;
+
+    document.getElementById('modalChildFoot').innerHTML=isAdmin?`
+      <button class="btn btn-sm" style="background:#ecfdf5;border:1px solid #10b981;color:#065f46;font-weight:600;padding:8px 16px;border-radius:10px" onclick="openClinicForChild('${c.child_id}','${c.name.replace(/'/g,'')}')"><i class="bi bi-hospital me-1"></i>บันทึกวัคซีน</button>
+      <button class="btn btn-sm" style="background:#4f46e5;border:none;color:#fff;font-weight:600;padding:8px 16px;border-radius:10px" onclick="openAssign('${c.child_id}','${c.name.replace(/'/g,'')}','${color}')"><i class="bi bi-person-check me-1"></i>มอบหมาย</button>
+      ${c.gps_lat?`<button class="btn btn-sm" style="background:#ede9fe;border:none;color:#4c1d95;font-weight:600;padding:8px 16px;border-radius:10px" onclick="openNavSheet('${c.gps_lat}','${c.gps_lng}','${c.name.replace(/'/g,'')}')"><i class="bi bi-map-fill me-1"></i>นำทาง</button>`:`<button class="btn btn-sm" style="background:#f1f5f9;border:none;color:#4f46e5;font-weight:600;padding:8px 16px;border-radius:10px" onclick="openGPSModal('${c.child_id}','${c.name.replace(/'/g,'')}')"><i class="bi bi-geo-alt-fill me-1"></i>ปักหมุด GPS</button>`}`:
+      `<div style="display:flex;gap:8px;width:100%">
+        <button class="btn flex-grow-1" style="background:#4f46e5;border:none;color:#fff;font-weight:600;padding:10px;border-radius:10px" onclick="openVisitModal('${c.child_id}','${c.name.replace(/'/g,'')}')"><i class="bi bi-house-heart me-1"></i>บันทึกการเยี่ยมบ้าน</button>
+        ${c.gps_lat?`<button class="btn" style="background:#ede9fe;border:none;color:#4c1d95;font-weight:600;padding:10px 14px;border-radius:10px" onclick="openNavSheet('${c.gps_lat}','${c.gps_lng}','${c.name.replace(/'/g,'')}')"><i class="bi bi-map-fill"></i></button>`:`<button class="btn" style="background:#f1f5f9;border:none;color:#4f46e5;font-weight:600;padding:10px 14px;border-radius:10px" onclick="openGPSModal('${c.child_id}','${c.name.replace(/'/g,'')}')"><i class="bi bi-geo-alt-fill"></i></button>`}
+      </div>`;}).catch(e=>{document.getElementById('modalChildBody').innerHTML='<div class="text-danger text-center py-4">'+e.message+'</div>';});
+}
+
+/* ── EDIT VACCINE RECORD ── */
+var _editVacChildId='', _editVacOldCode='';
+function openEditVac(childId, vaccCode, currentDate) {
+  _editVacChildId = childId;
+  _editVacOldCode = vaccCode;
+  var sel = document.getElementById('editVacCode');
+  for (var i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === vaccCode) { sel.selectedIndex = i; break; }
+  }
+  var fmtDate = '';
+  try { var dt=new Date(currentDate); if(!isNaN(dt)) fmtDate=dt.toISOString().slice(0,10); } catch(e){}
+  document.getElementById('editVacDate').value = fmtDate;
+  document.getElementById('editNextDate').value = '';
+  document.getElementById('editNextVaccine').value = '';
+  bootstrap.Modal.getInstance(document.getElementById('modalChild'))?.hide();
+  setTimeout(function(){ new bootstrap.Modal(document.getElementById('modalEditVac')).show(); }, 350);
+}
+function submitEditVac() {
+  var newCode=document.getElementById('editVacCode').value;
+  var newDate=document.getElementById('editVacDate').value;
+  if(!newDate){alert('กรุณาใส่วันที่');return;}
+  var nextDate=document.getElementById('editNextDate').value;
+  var nextVaccine=document.getElementById('editNextVaccine').value;
+  var btn=document.getElementById('editVacBtn');
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>บันทึก...';btn.disabled=true;
+  callApi('clientUpdateVaccineRecord',[APP.token,_editVacChildId,_editVacOldCode,newDate,'',newCode,nextDate,nextVaccine]).then(function(res){
+    btn.innerHTML='<i class="bi bi-check-circle me-1"></i>บันทึก';btn.disabled=false;
+    if(res.success){alert('✅ แก้ไขสำเร็จ');bootstrap.Modal.getInstance(document.getElementById('modalEditVac'))?.hide();openChild(_editVacChildId);}
+    else alert('Error: '+(res.error||''));
+  }).catch(function(e){btn.innerHTML='<i class="bi bi-check-circle me-1"></i>บันทึก';btn.disabled=false;alert('Error: '+e.message);
+  });
+}
+function deleteVaccRecord() {
+  if(!confirm('ลบข้อมูลวัคซีน '+_editVacOldCode+' ออก?\nไม่สามารถกู้คืนได้'))return;
+  ov(true,'กำลังลบ...');
+  callApi('clientDeleteVaccineRecord',[APP.token,_editVacChildId,_editVacOldCode]).then(function(res){
+    ov(false);
+    if(res.success){alert('✅ ลบสำเร็จ');bootstrap.Modal.getInstance(document.getElementById('modalEditVac'))?.hide();openChild(_editVacChildId);}
+    else alert('Error: '+(res.error||''));
+  }).catch(function(e){ov(false);alert('Error: '+e.message);
+  });
+}
+
+/* ── CLINIC ── */
+function onClinicSearch(){
+  clearTimeout(APP.clinicSearchTimer);
+  const q=document.getElementById('clinicSearch').value;
+  if(q.length<2){document.getElementById('clinicSearchResult').innerHTML='';return;}
+  APP.clinicSearchTimer=setTimeout(()=>{
+    document.getElementById('clinicSearchResult').innerHTML='<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+    callApi('clientSearchChild',[APP.token,q]).then(res=>{
+      document.getElementById('clinicSearchResult').innerHTML=res.children?.length?
+        '<div class="list-group">'+res.children.map(c=>`<button class="list-group-item list-group-item-action py-2" onclick="selectClinicChild('${c.child_id}','${c.name.replace(/'/g,'')}','${c.age_str}','${c.village_no}')"><strong>${c.name}</strong> <span class="text-muted ms-2" style="font-size:12px">${c.age_str} · ม.${c.village_no} ${c.tambon||''}</span></button>`).join('')+'</div>':
+        '<div class="text-muted py-2 text-center">ไม่พบชื่อนี้</div>';
+    }).catch(()=>{});
+  },400);
+}
+function selectClinicChild(id,name,age,vno){
+  APP.clinicChildId=id;
+  document.getElementById('clinicChildAv').textContent=initials(name);
+  document.getElementById('clinicChildName').textContent=name;
+  document.getElementById('clinicChildInfo').textContent=age+' · ม.'+vno;
+  document.getElementById('clinicSearch').value=name;
+  document.getElementById('clinicSearchResult').innerHTML='';
+  document.getElementById('clinicForm').style.display='';
+  document.getElementById('clinicVacList').innerHTML='';
+  APP.clinicVacRows=[];
+  // Add first row
+  addClinicVacRow();
+}
+function addClinicVacRow(){
+  const idx=APP.clinicVacRows.length;
+  APP.clinicVacRows.push({});
+  const today=new Date().toISOString().split('T')[0];
+  const row=document.createElement('div');
+  row.className='row g-2 mb-2 align-items-center';
+  row.id='vrow-'+idx;
+  row.innerHTML=`
+    <div class="col-5"><select class="form-select form-select-sm" id="vc-code-${idx}">
+      <option value="">-- เลือกวัคซีน --</option>
+      <optgroup label="ประจำการ"><option>BCG</option><option>HB1</option><option>DTP-HB-Hib1</option><option>DTP-HB-Hib2</option><option>DTP-HB-Hib3</option><option>IPV1</option><option>IPV2</option><option>OPV1</option><option>OPV2</option><option>OPV3</option><option>MMR1</option><option>MMR2</option><option>DTP4</option><option>OPV4</option><option>LAJE1</option><option>LAJE2</option><option>DTP5</option><option>OPV5</option><option>Rota1</option><option>Rota2</option><option>Rota3</option></optgroup>
+    </select></div>
+    <div class="col-4"><input type="date" class="form-control form-control-sm" id="vc-date-${idx}" value="${today}"></div>
+    <div class="col-2"><input type="text" class="form-control form-control-sm" id="vc-loc-${idx}" placeholder="สถานที่" value="รพ.ศรีสาคร"></div>
+    <div class="col-1"><button class="btn btn-sm btn-outline-danger" onclick="document.getElementById('vrow-${idx}').remove()"><i class="bi bi-trash"></i></button></div>`;
+  document.getElementById('clinicVacList').appendChild(row);
+}
+function clearClinic(){
+  APP.clinicChildId=null;
+  document.getElementById('clinicSearch').value='';
+  document.getElementById('clinicSearchResult').innerHTML='';
+  document.getElementById('clinicForm').style.display='none';
+  document.getElementById('clinicVacList').innerHTML='';
+  APP.clinicVacRows=[];
+}
+function submitClinic(){
+  if(!APP.clinicChildId){alert('กรุณาเลือกเด็กก่อน');return;}
+  const rows=document.getElementById('clinicVacList').querySelectorAll('[id^="vrow-"]');
+  const vaccines=[];
+  rows.forEach(r=>{
+    const idx=r.id.split('-')[1];
+    const code=document.getElementById('vc-code-'+idx)?.value;
+    const date=document.getElementById('vc-date-'+idx)?.value;
+    const loc=document.getElementById('vc-loc-'+idx)?.value||'รพ.ศรีสาคร';
+    if(code&&date)vaccines.push({code,date,location:loc});
+  });
+  if(!vaccines.length){alert('กรุณาเลือกวัคซีนอย่างน้อย 1 ชนิด');return;}
+  ov(true,'กำลังบันทึก...');
+  const nextDate=document.getElementById('clinicNextDate').value;
+  const notes=document.getElementById('clinicNotes').value;
+  callApi('clientClinicRecord',[APP.token,APP.clinicChildId,vaccines,nextDate,notes]).then(res=>{
+    ov(false);
+    if(res.success){alert('✅ บันทึกสำเร็จ '+res.recorded+' รายการ');clearClinic();}
+    else alert('Error: '+(res.error||''));
+  }).catch(e=>{ov(false);alert('Error: '+e.message);});
+}
+function openClinicForChild(childId,childName){
+  bootstrap.Modal.getInstance(document.getElementById('modalChild'))?.hide();
+  setTimeout(()=>{
+    goView('clinic');
+    document.getElementById('clinicSearch').value=childName;
+    // trigger search
+    const e=new Event('input');document.getElementById('clinicSearch').dispatchEvent(e);
+  },300);
+}
+
+function setGender(g){
+  document.getElementById('ac-sex').value=g;
+  var bm=document.getElementById('btnMale');
+  var bf=document.getElementById('btnFemale');
+  if(g==='ชาย'){
+    bm.style.cssText='background:linear-gradient(135deg,#dbeafe,#bfdbfe);border:2px solid #60a5fa;color:#1e40af;border-radius:10px;font-size:13px;flex:1;font-weight:600';
+    bf.style.cssText='background:#fff;border:1.5px solid #d1d5db;color:#6b7280;border-radius:10px;font-size:13px;flex:1;font-weight:600';
+  } else {
+    bf.style.cssText='background:linear-gradient(135deg,#fce7f3,#fbcfe8);border:2px solid #f472b6;color:#9d174d;border-radius:10px;font-size:13px;flex:1;font-weight:600';
+    bm.style.cssText='background:#fff;border:1.5px solid #d1d5db;color:#6b7280;border-radius:10px;font-size:13px;flex:1;font-weight:600';
+  }
+}
+
+function submitAddChild(){
+  const err=document.getElementById('addChildErr');err.classList.add('d-none');
+  const data={
+    citizen_id:document.getElementById('ac-cid').value,
+    first_name:document.getElementById('ac-fn').value.trim(),
+    last_name:document.getElementById('ac-ln').value.trim(),
+    prefix:document.getElementById('ac-prefix').value,
+    gender:document.getElementById('ac-sex').value,
+    birth_date:document.getElementById('ac-birth').value,
+    nationality:document.getElementById('ac-nation').value,
+    house_no:document.getElementById('ac-house').value,
+    village_no:document.getElementById('ac-vno').value,
+    village_name:document.getElementById('ac-village-name').value,
+    tambon:document.getElementById('ac-tambon').value,
+    parent_name:document.getElementById('ac-parent').value,
+    parent_relation:document.getElementById('ac-rel').value,
+    parent_phone:document.getElementById('ac-phone').value,
+    parent_line:document.getElementById('ac-line').value,
+    parent_cid:document.getElementById('ac-parent-cid').value,
+    assigned_asm_id:document.getElementById('ac-asm').value,
+    entry_status:document.getElementById('ac-entry-status').value,
+    notes:document.getElementById('ac-notes').value,
+  };
+  if(!data.first_name || !data.last_name || !data.birth_date || !data.village_no || !data.tambon){err.textContent='กรุณากรอกข้อมูลบังคับ (*) ให้ครบถ้วน';err.classList.remove('d-none');return;}
+  ov(true,'กำลังบันทึก...');
+  callApi('clientAddChild',[APP.token,data]).then(res=>{
+    ov(false);
+    if(res.success){alert('✅ เพิ่มเด็ก '+data.first_name+' '+data.last_name+' เรียบร้อย ('+res.child_id+')');goView('registry');}
+    else{err.textContent=res.error||'เกิดข้อผิดพลาด';err.classList.remove('d-none');}
+  }).catch(e=>{ov(false);err.textContent='Error: '+e.message;err.classList.remove('d-none');});
+}
+
+function loadAsmForAddChild() {
+  callApi('clientGetASMList',[APP.token]).then(function(res) {
+    var sel = document.getElementById('ac-asm');
+    // รีเซ็ตค่าเริ่มต้น
+    sel.innerHTML = '<option value="">-- เลือก อสม. --</option>';
+    // วนลูปใส่รายชื่อ อสม.
+    (res.asms || []).forEach(function(a) {
+      sel.append(new Option(a.full_name + (a.assigned_villages ? ' (' + a.assigned_villages + ')' : ''), a.user_id));
+    });
+  }).catch(function(){});
+}
+
+/* ── VISIT MODAL ── */
+let selectedVisit=null;
+function openVisitModal(childId,childName){
+  APP.visitChildId=childId;
+  document.getElementById('visitInfo').textContent=childName;
+  document.getElementById('visitNotes').value='';
+  document.getElementById('visitBtn').disabled=true;
+  selectedVisit=null;
+  document.querySelectorAll('.visit-opt').forEach(o=>{o.style.cssText='border:1px solid #dee2e6;background:';o.querySelector('.vo-dot').style.cssText='';});
+  bootstrap.Modal.getInstance(document.getElementById('modalChild'))?.hide();
+  new bootstrap.Modal(document.getElementById('modalVisit')).show();
+}
+function pickVisit(el,result){
+  document.querySelectorAll('.visit-opt').forEach(o=>{o.style.background='';o.style.border='1px solid #dee2e6';o.querySelector('.vo-dot').style.cssText='';});
+  el.style.background='#eff6ff';el.style.border='2px solid #3b82f6';
+  el.querySelector('.vo-dot').style.cssText='background:#3b82f6;border-color:#3b82f6';
+  selectedVisit=result;document.getElementById('visitBtn').disabled=false;
+}
+function submitVisit(){
+  if(!selectedVisit)return;
+  const btn=document.getElementById('visitBtn');btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>บันทึก...';btn.disabled=true;
+  callApi('clientRecordVisit',[APP.token,APP.visitChildId,selectedVisit,document.getElementById('visitNotes').value]).then(res=>{
+    btn.innerHTML='บันทึก';btn.disabled=false;
+    if(res.success){alert('✅ บันทึกสำเร็จ'+(res.newColor?'\nสถานะใหม่: '+res.newColor:''));bootstrap.Modal.getInstance(document.getElementById('modalVisit'))?.hide();APP.asmCache=[];loadAsmDash();}
+    else alert('Error: '+(res.error||''));
+  }).catch(e=>{btn.innerHTML='บันทึก';btn.disabled=false;alert('Error: '+e.message);});
+}
+
+/* ── MAP ── */
+let _map=null,_mapLoaded=false;
+const TAMBON_COORDS={'ซากอ':[6.215245,101.509062],'ศรีสาคร':[6.208949,101.488183],'กาหลง':[6.216819,101.437242],'ตะมะรังสา':[5.995,101.820],'เชิงเขา':[6.080,101.875]};
+const MAP_COLOR={'เขียว':'#10b981','เหลืองอ่อน':'#eab308','เหลือง':'#f97316','แดง':'#ef4444'};
+
+function initMap(){
+  if(_map)return;
+  _map=L.map('mapContainer').setView([6.209,101.488],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(_map);
+}
+function loadMapData(){
+  initMap();if(_mapLoaded)return;
+  callApi('clientGetVillageStats',[APP.token]).then(function(res){
+    if(!res.success)return;_mapLoaded=true;renderMap(res.villages);
+  }).catch(function(e){console.error(e);});
+}
+function getVillageCoords(v){
+  if(v.gps_lat&&v.gps_lng)return[Number(v.gps_lat),Number(v.gps_lng)];
+  var base=TAMBON_COORDS[v.tambon]||[6.05,101.84];
+  var n=Number(v.village_no)||1;
+  return[base[0]+(n*0.006)-0.03,base[1]+(n*0.004)-0.02];
+}
+function renderMap(villages){
+  _map.eachLayer(function(l){if(l instanceof L.CircleMarker)_map.removeLayer(l);});
+  var total=0,tg=0,tyl=0,ty=0,tr=0,rows=[];
+  villages.forEach(function(v){
+    var coords=getVillageCoords(v);
+    var col=MAP_COLOR[v.dominant]||'#94a3b8';
+    var r=Math.max(8,Math.min(22,8+v.total/4));
+    var circle=L.circleMarker(coords,{radius:r,fillColor:col,color:'#fff',weight:2,opacity:1,fillOpacity:.85}).addTo(_map);
+    var gpsNote=v.gps_lat?'':'<div style="font-size:10px;color:#94a3b8;margin-top:4px">*ตำแหน่งโดยประมาณ</div>';
+    L.marker(coords,{
+      icon:L.divIcon({
+        html:'<div style="background:rgba(255,255,255,.85);border:1px solid '+col+';border-radius:6px;padding:1px 5px;font-size:10px;font-weight:700;color:'+col+';white-space:nowrap">ม.'+v.village_no+' '+v.tambon+'</div>',
+        iconSize:[30,18],iconAnchor:[15,9],className:''
+      })
+    }).addTo(_map);
+    circle.bindPopup('<div style="font-family:Tahoma,sans-serif;min-width:180px"><b style="font-size:14px">ม.'+v.village_no+' ต.'+v.tambon+'</b><br><small>เด็กทั้งหมด: <b>'+v.total+' คน</b></small><hr style="margin:5px 0"><div style="font-size:12px">🟢 เขียว: '+v.green+' ('+v.percent+'%)<br>🟡 เหลืองอ่อน: '+v.lightYellow+'<br>🟡 เหลือง: '+v.yellow+'<br>🔴 แดง: '+v.red+'</div>'+gpsNote+'</div>');
+    total+=v.total;tg+=v.green;tyl+=v.lightYellow;ty+=v.yellow;tr+=v.red;
+    var bar=Math.min(v.percent,60);
+    rows.push('<tr><td><b>ม.'+v.village_no+'</b></td><td>'+v.tambon+'</td><td class="fw-bold">'+v.total+'</td><td class="text-success">'+v.green+'</td><td style="color:#854d0e">'+v.lightYellow+'</td><td style="color:#9a3412">'+v.yellow+'</td><td class="text-danger">'+v.red+'</td><td><div style="display:flex;align-items:center;gap:5px"><div style="width:'+bar+'px;height:6px;border-radius:3px;background:'+col+'"></div><span style="font-size:11px">'+v.percent+'%</span></div></td><td>'+(v.gps_lat?'<span class="text-success">✓</span>':'<span class="text-muted">–</span>')+'</td></tr>');
+  });
+  var vt=document.getElementById('villageTableBody');if(vt)vt.innerHTML=rows.join('');
+  var pct=total>0?Math.round(tg/total*100):0;
+  var ms=document.getElementById('mapSummary');
+  var bounds=villages.map(function(v){return getVillageCoords(v);});
+  if(bounds.length>0)_map.fitBounds(bounds,{padding:[30,30]});
+  if(ms)ms.innerHTML='<div class="col-6 col-sm-3"><div class="stat-card text-center" style="background:#f8fafc"><div class="stat-num" style="font-size:24px">'+total+'</div><div class="stat-lbl text-muted">ทั้งหมด</div></div></div><div class="col-6 col-sm-3"><div class="stat-card st-g text-center"><div class="stat-num text-g" style="font-size:24px">'+pct+'%</div><div class="stat-lbl text-g">Coverage</div></div></div><div class="col-6 col-sm-3"><div class="stat-card st-r text-center"><div class="stat-num text-r" style="font-size:24px">'+tr+'</div><div class="stat-lbl text-r">🔴 แดง</div></div></div><div class="col-6 col-sm-3"><div class="stat-card text-center" style="background:#eff6ff;border:1px solid #bfdbfe"><div class="stat-num" style="font-size:24px;color:#1e40af">'+villages.length+'</div><div class="stat-lbl" style="color:#1e40af">หมู่บ้าน</div></div></div>';
+}
+/* override goView to trigger map load */
+(function(){
+  var _orig=goView;
+  goView=function(v){
+    _orig(v);
+    if(v==='map'){setTimeout(function(){if(_map)_map.invalidateSize();loadMapData();switchMapTab(1);},150);}
+  };
+})();
+
+
+/* ── ASSIGN MODAL ── */
+function loadAsmListForAssign(){
+  callApi('clientGetASMList',[APP.token]).then(function(res){
+    var sel=document.getElementById('assignASM');
+    sel.innerHTML='<option value="">-- เลือก อสม. --</option>';
+    (res.asms||[]).forEach(function(a){sel.append(new Option(a.full_name+(a.assigned_villages?' ('+a.assigned_villages+')':''),a.user_id));});
+  }).catch(function(){});
+}
+
+function openAssign(childId,childName,color){
+  APP.assignId=childId;
+  document.getElementById('assignInfo').textContent=childName+' · '+(CL[color]||color);
+  document.getElementById('assignDate').value='';
+  document.getElementById('assignNotes').value='';
+  setTaskType('visit');
+  var cm=bootstrap.Modal.getInstance(document.getElementById('modalChild'));
+  if(cm){ cm.hide(); setTimeout(function(){ new bootstrap.Modal(document.getElementById('modalAssign')).show(); },350); }
+  else { new bootstrap.Modal(document.getElementById('modalAssign')).show(); }
+}
+
+function submitAssign(){
+  var asmId=document.getElementById('assignASM').value;
+  if(!asmId){alert('กรุณาเลือก อสม.');return;}
+  var btn=document.getElementById('assignBtn');
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>บันทึก...';btn.disabled=true;
+  callApi('clientAssignFollowUp',[APP.token,APP.assignId,asmId,document.getElementById('assignDate').value,document.getElementById('assignNotes').value,_taskType]).then(function(res){
+    btn.innerHTML='<i class="bi bi-send me-1"></i>มอบหมาย';btn.disabled=false;
+    if(res.success){alert('✅ มอบหมายสำเร็จ');bootstrap.Modal.getInstance(document.getElementById('modalAssign'))?.hide();}
+    else alert('Error: '+(res.error||''));
+  }).catch(function(e){
+    btn.innerHTML='<i class="bi bi-send me-1"></i>มอบหมาย';btn.disabled=false;
+    alert('Error: '+e.message);
+  });
+}
+
+/* ── Task Type ── */
+var _taskType = 'visit';
+function setTaskType(t) {
+  _taskType = t;
+  var bv = document.getElementById('btnTaskVisit');
+  var bc = document.getElementById('btnTaskVaccine');
+  if (t === 'visit') {
+    bv.style.cssText = 'background:#ede9fe;border:2px solid #6d28d9;color:#4c1d95;border-radius:10px;font-size:13px;flex:1;font-weight:600';
+    bc.style.cssText = 'background:#fff;border:1.5px solid #d1d5db;color:#6b7280;border-radius:10px;font-size:13px;flex:1;font-weight:600';
+  } else {
+    bc.style.cssText = 'background:#ecfdf5;border:2px solid #059669;color:#065f46;border-radius:10px;font-size:13px;flex:1;font-weight:600';
+    bv.style.cssText = 'background:#fff;border:1.5px solid #d1d5db;color:#6b7280;border-radius:10px;font-size:13px;flex:1;font-weight:600';
+  }
+}
+
+/* ── Wednesday Alert ── */
+function loadWednesdayAlert() {
+  callApi('clientGetWednesdayAlert',[APP.token]).then(function(res) {
+    if (!res || !res.success || res.total === 0) return;
+    var card = document.getElementById('wedAlertCard');
+    card.classList.remove('d-none');
+    document.getElementById('wedDateLabel').textContent = 'วันพุธ ' + res.nextWednesday + ' (อีก ' + res.daysToWed + ' วัน)';
+    var vc = document.getElementById('wedVacCnt');
+    var vi = document.getElementById('wedVisCnt');
+    if (res.vaccineCount > 0) { vc.textContent = '💉 ' + res.vaccineCount + ' นัดวัคซีน'; vc.style.display = ''; }
+    if (res.visitCount > 0)   { vi.textContent = '🏠 ' + res.visitCount + ' เยี่ยมบ้าน'; vi.style.display = ''; }
+    document.getElementById('wedAlertList').innerHTML = res.items.map(function(f) {
+      var isVac = f.task_type === 'vaccine';
+      var bg = isVac ? 'background:#ede9fe;color:#4c1d95' : 'background:#d1fae5;color:#065f46';
+      var lbl = isVac ? '💉 แจ้งนัด' : '🏠 เยี่ยมบ้าน';
+      return '<div onclick="openChild(\'' + f.child_id + '\')" style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;cursor:pointer;background:#fff;margin-bottom:6px">' +
+        '<div style="width:28px;height:28px;border-radius:50%;background:' + (isVac?'#6366f1':'#10b981') + ';display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex-shrink:0">' + initials(f.name) + '</div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + f.name + '</div>' +
+        '<div style="font-size:11px;color:#64748b">ม.' + f.village_no + ' ' + f.tambon + ' · ' + f.age_str + '</div>' +
+        (f.vaccine_name ? '<div style="font-size:11px;color:#4f46e5;font-weight:600">💉 ' + f.vaccine_name + '</div>' : '') +
+        '</div>' +
+        '<span style="font-size:10px;padding:3px 8px;border-radius:99px;' + bg + '">' + lbl + '</span>' +
+        '<button onclick="event.stopPropagation();openAssign(\'' + f.child_id + '\',\'' + f.name.replace(/'/g,'') + '\',\'เหลือง\')" style="font-size:11px;padding:4px 10px;background:#4f46e5;border:none;color:#fff;border-radius:8px;cursor:pointer">มอบหมาย</button>' +
+      '</div>';
+    }).join('');
+  }).catch(function() {});
+}
+
+/* ── ASM Tasks ── */
+var _myTasksCache = [];
+var _myTaskFilter = 'all';
+
+function loadMyTasks() {
+  document.getElementById('myTaskList').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+  callApi('clientGetMyTasks',[APP.token]).then(function(res) {
+    _myTasksCache = res.tasks || [];
+    renderMyTasks(_myTasksCache);
+    var cnt = document.getElementById('sbTaskCount');
+    if (cnt) { cnt.textContent = _myTasksCache.length; cnt.style.display = _myTasksCache.length > 0 ? '' : 'none'; }
+  }).catch(function() {});
+}
+
+function filterMyTasks(f, el) {
+  _myTaskFilter = f;
+  document.querySelectorAll('#view-asm-tasks .chip').forEach(function(x) { x.classList.toggle('dim', x !== el); });
+  el.classList.remove('dim');
+  renderMyTasks(f === 'all' ? _myTasksCache : _myTasksCache.filter(function(t) { return t.task_type === f; }));
+}
+
+function fmtTaskDate(d) {
+  if (!d) return 'ไม่ระบุ';
+  try {
+    var dt = new Date(d);
+    if (isNaN(dt)) return String(d);
+    var m = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    return dt.getDate() + ' ' + m[dt.getMonth()] + ' ' + (dt.getFullYear()+543);
+  } catch(e) { return String(d); }
+}
+
+function renderMyTasks(tasks) {
+  document.getElementById('myTaskCount').textContent = tasks.length + ' รายการ';
+  if (!tasks.length) { document.getElementById('myTaskList').innerHTML = '<div class="empty-st">🎉 ไม่มีงานที่ค้างอยู่</div>'; return; }
+  document.getElementById('myTaskList').innerHTML = tasks.map(function(t) {
+    var isVac = t.task_type === 'vaccine';
+    var iconBg = isVac ? '#6366f1' : '#10b981';
+    var typeBg = isVac ? 'background:#ede9fe;color:#4c1d95' : 'background:#d1fae5;color:#065f46';
+    var typeLbl = isVac ? '💉 แจ้งนัดวัคซีน' : '🏠 เยี่ยมบ้าน';
+    var now = new Date(); now.setHours(0,0,0,0);
+    var dd = new Date(t.due_date); dd.setHours(0,0,0,0);
+    var overdue = (!isNaN(dd) && dd < now) ? '<span style="background:#fee2e2;color:#991b1b;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px">เกินกำหนด</span>' : '';
+    return '<div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #e2e8f0;box-shadow:0 2px 6px rgba(0,0,0,.04)">' +
+      '<div style="display:flex;align-items:flex-start;gap:10px">' +
+        '<div style="width:38px;height:38px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">' + initials(t.name) + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">' +
+            '<span style="font-size:14px;font-weight:700;color:#1e293b">' + t.name + '</span>' +
+            '<span style="font-size:10px;padding:3px 9px;border-radius:99px;' + typeBg + '">' + typeLbl + '</span>' + overdue +
+          '</div>' +
+          '<div style="font-size:12px;color:#64748b;margin-bottom:3px">ม.' + t.village_no + ' ' + t.tambon + ' · ' + t.age_str + '</div>' +
+          (t.vaccine_name ? '<div style="font-size:12px;color:#4f46e5;font-weight:600">💉 ' + t.vaccine_name + '</div>' : '') +
+          (t.parent_phone ? '<div style="font-size:12px;color:#64748b"><i class="bi bi-telephone me-1"></i>' + t.parent_phone + '</div>' : '') +
+          '<div style="font-size:11px;color:#94a3b8;margin-top:4px">🗓 กำหนด: ' + fmtTaskDate(t.due_date) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #f8fafc">' +
+        '<button onclick="openChild(\'' + t.child_id + '\')" style="flex:1;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;cursor:pointer;font-family:inherit">👁 ดูรายละเอียด</button>' +
+        '<button onclick="doneTask(\'' + t.followup_id + '\')" style="flex:1;padding:8px;background:#4f46e5;border:none;border-radius:8px;font-size:12px;color:#fff;cursor:pointer;font-family:inherit;font-weight:600">✅ บันทึกเสร็จแล้ว</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function doneTask(followupId) {
+  var result = prompt('บันทึกผลการดำเนินงาน:', 'ดำเนินการแล้ว');
+  if (result === null) return;
+  ov(true, 'กำลังบันทึก...');
+  callApi('clientCompleteTask',[APP.token, followupId, result, '']).then(function(res) {
+    ov(false);
+    if (res.success) { alert('✅ บันทึกเสร็จสิ้น'); loadMyTasks(); loadAsmDash(); }
+    else alert('Error: ' + (res.error || ''));
+  }).catch(function(e) { ov(false); alert('Error: ' + e.message); });
+}
+
+/* ── Clinic Timeline ── */
+function loadClinicTimeline() {
+  document.getElementById('timelineList').innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+  callApi('clientGetClinicTimeline',[APP.token, 30]).then(function(res) {
+    if (!res || !res.success || !res.records.length) {
+      document.getElementById('timelineList').innerHTML = '<div class="empty-st">ไม่มีประวัติการบันทึกในช่วงนี้</div>';
+      return;
+    }
+    const groups = {};
+    res.records.forEach(function(r) {
+      if (!groups[r.date_str]) groups[r.date_str] = [];
+      groups[r.date_str].push(r);
+    });
+    var html = '';
+    Object.keys(groups).forEach(function(date) {
+      var items = groups[date];
+      var show5 = items.slice(0, 5);
+      var rest = items.slice(5);
+      var dateId = date.replace(/\s/g,'_');
+      html += '<div class="text-muted fw-bold mb-2 mt-3" style="font-size:11px;letter-spacing:.06em">— '+date+' —</div>';
+      // แสดง 5 รายการแรก
+      show5.forEach(function(r) {
+        html += _timelineRow(r);
+      });
+      // ถ้ามีมากกว่า 5
+      if (rest.length > 0) {
+        html += '<div id="more_'+dateId+'" style="display:none">';
+        rest.forEach(function(r) {
+          html += _timelineRow(r);
+        });
+        html += '</div>';
+        html += '<div class="text-center mt-1 mb-2">' +
+          '<button onclick="toggleMore(\''+dateId+'\',this)" ' +
+          'class="btn btn-sm btn-outline-primary py-0" style="font-size:11px">' +
+          '+ ดูทั้งหมด '+items.length+' รายการ ▼' +
+          '</button></div>';
+      }
+    });
+    document.getElementById('timelineList').innerHTML = html;
+  }).catch(function() {
+    document.getElementById('timelineList').innerHTML = '<div class="empty-st">โหลดไม่สำเร็จ</div>';
+  });
+}
+
+function _timelineRow(r) {
+  return '<div onclick="openChild(\''+r.child_id+'\')" style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:6px;border:1px solid #e2e8f0;cursor:pointer;display:flex;align-items:center;gap:10px">' +
+    '<div style="width:34px;height:34px;border-radius:50%;background:#0097a7;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">'+r.initials+'</div>' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:13px;font-weight:600;color:#1e293b">'+r.name+'</div>' +
+      '<div style="font-size:11px;color:#64748b">' +
+        '<span style="background:#d1fae5;color:#065f46;padding:1px 7px;border-radius:99px;font-weight:600;margin-right:6px">💉 '+r.vaccine_code+'</span>' +
+        (r.next_date ? '📅 นัดครั้งต่อไป '+r.next_date+(r.next_vaccine?' · '+r.next_vaccine:'') : '') +
+      '</div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:#94a3b8;flex-shrink:0">'+r.time_str+'</div>' +
+  '</div>';
+}
+
+function toggleMore(dateId, btn) {
+  var el = document.getElementById('more_'+dateId);
+  if (el.style.display === 'none') {
+    el.style.display = '';
+    btn.textContent = '▲ ซ่อน';
+  } else {
+    el.style.display = 'none';
+    btn.innerHTML = '+ ดูเพิ่มเติม ▼';
+  }
+}
+
+/* ── ASM MAP ── */
+var _mapAsm=null,_asmMapCache=[],_asmMapColorFilter='ทั้งหมด';
+
+function loadAsmMap(){
+  document.getElementById('asmMapList').innerHTML='<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>';
+  document.getElementById('asmMapStats').innerHTML='';
+  callApi('clientGetAsmChildrenWithGPS',[APP.token]).then(function(res){
+    if(!res.success)return;
+    _asmMapCache=res.children||[];
+    var total=_asmMapCache.length;
+    var gpsCount=_asmMapCache.filter(function(c){return c.gps_lat&&c.gps_lng;}).length;
+    var noGps=total-gpsCount;
+    var red=_asmMapCache.filter(function(c){return c.color==='แดง';}).length;
+    var yellow=_asmMapCache.filter(function(c){return c.color==='เหลือง';}).length;
+    // subtitle
+    document.getElementById('asmMapSubtitle').textContent='ทั้งหมด '+total+' คน · มี GPS '+gpsCount+' คน';
+    // stats
+    document.getElementById('asmMapStats').innerHTML=
+      '<div class="col-3"><div class="stat-card text-center p-2"><div class="fw-bold" style="font-size:20px">'+total+'</div><div style="font-size:10px;color:#64748b">ทั้งหมด</div></div></div>'+
+      '<div class="col-3"><div class="stat-card text-center p-2" style="background:#fee2e2"><div class="fw-bold text-r" style="font-size:20px">'+red+'</div><div style="font-size:10px;color:#991b1b">🔴 แดง</div></div></div>'+
+      '<div class="col-3"><div class="stat-card text-center p-2" style="background:#ede9fe"><div class="fw-bold" style="font-size:20px;color:#4f46e5">'+gpsCount+'</div><div style="font-size:10px;color:#4f46e5">📍 GPS</div></div></div>'+
+      '<div class="col-3"><div class="stat-card text-center p-2" style="background:#f8fafc"><div class="fw-bold" style="font-size:20px;color:#94a3b8">'+noGps+'</div><div style="font-size:10px;color:#94a3b8">❓ ไม่มี</div></div></div>';
+    renderAsmMap(_asmMapCache);
+  }).catch(function(){});
+}
+
+function setAsmMapColor(c,el){
+  _asmMapColorFilter=c;
+  document.querySelectorAll('#asmMapChips .chip').forEach(function(x){x.classList.toggle('dim',x!==el);});
+  el.classList.remove('dim');
+  if(c==='มีGPS'){
+    renderAsmMap(_asmMapCache.filter(function(x){return x.gps_lat&&x.gps_lng;}));
+  } else if(c==='ทั้งหมด'){
+    renderAsmMap(_asmMapCache);
+  } else {
+    renderAsmMap(_asmMapCache.filter(function(x){return x.color===c;}));
+  }
+}
+
+function renderAsmMap(children){
+  var MAP_C={'เขียว':'#10b981','เหลืองอ่อน':'#eab308','เหลือง':'#f97316','แดง':'#ef4444'};
+  // init map
+  if(!_mapAsm){
+    _mapAsm=L.map('mapAsm').setView([6.209,101.488],14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:19}).addTo(_mapAsm);
+  }
+  _mapAsm.invalidateSize();
+  // clear markers
+  _mapAsm.eachLayer(function(l){if(l instanceof L.CircleMarker||l instanceof L.Marker)_mapAsm.removeLayer(l);});
+  // my location
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(p){
+      L.circleMarker([p.coords.latitude,p.coords.longitude],{radius:9,fillColor:'#4f46e5',color:'#fff',weight:3,fillOpacity:1}).addTo(_mapAsm).bindPopup('📍 ตำแหน่งของฉัน');
+      L.circle([p.coords.latitude,p.coords.longitude],{radius:80,color:'#4f46e5',fillColor:'#4f46e5',fillOpacity:.1,weight:1}).addTo(_mapAsm);
+    },function(){});
+  }
+  var gpsKids=children.filter(function(c){return c.gps_lat&&c.gps_lng;});
+  var noGpsKids=children.filter(function(c){return !c.gps_lat||!c.gps_lng;});
+  // pins with GPS
+  gpsKids.forEach(function(c){
+    var col=MAP_C[c.color]||'#94a3b8';
+    var marker=L.circleMarker([c.gps_lat,c.gps_lng],{radius:10,fillColor:col,color:'#fff',weight:2.5,fillOpacity:.9}).addTo(_mapAsm);
+    marker.bindPopup(
+      '<div style="font-family:Sarabun,sans-serif;min-width:150px">'+
+      '<b>'+c.name+'</b><br><small>'+c.color+' · '+c.age_str+'</small><br>'+
+      '<div style="display:flex;gap:4px;margin-top:6px">'+
+      '<button onclick="openNavSheet('+c.gps_lat+','+c.gps_lng+',\''+c.name.replace(/'/g,'')+'\');" style="flex:1;background:#4f46e5;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-family:Sarabun,sans-serif;cursor:pointer">🗺 นำทาง</button>'+
+      '<button onclick="openChild(\''+c.child_id+'\');" style="flex:1;background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:11px;font-family:Sarabun,sans-serif;cursor:pointer">👁 ดู</button>'+
+      '</div></div>'
+    );
+  });
+  // pins without GPS (dashed)
+  noGpsKids.forEach(function(c){
+    var col=MAP_C[c.color]||'#94a3b8';
+    var tambon=TAMBON_COORDS[c.tambon]||[6.209,101.488];
+    var jitter=[tambon[0]+(Math.random()-.5)*.01,tambon[1]+(Math.random()-.5)*.01];
+    L.circleMarker(jitter,{radius:8,fillColor:'#e2e8f0',color:col,weight:2,fillOpacity:.5,dashArray:'4,4'}).addTo(_mapAsm)
+     .bindPopup('<b>'+c.name+'</b><br><small>❓ ยังไม่มี GPS</small><br><button onclick="openGPSModal(\''+c.child_id+'\',\''+c.name.replace(/'/g,'')+'\');" style="margin-top:6px;background:#4f46e5;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-family:Sarabun,sans-serif;cursor:pointer">📍 ปักหมุด GPS</button>');
+  });
+  // fit bounds
+  if(gpsKids.length>0){
+    var bounds=gpsKids.map(function(c){return[c.gps_lat,c.gps_lng];});
+    _mapAsm.fitBounds(bounds,{padding:[40,40]});
+  }
+  // count
+  document.getElementById('asmMapCount').textContent=
+    'แสดง '+children.length+' คน · มี GPS '+gpsKids.length+' · ไม่มี GPS '+noGpsKids.length;
+  // list
+  document.getElementById('asmMapList').innerHTML=children.map(function(c){
+    var st=ST[c.color]||ST['เขียว'];
+    var gpsTag=c.gps_lat
+      ? '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:#ede9fe;color:#4c1d95;font-weight:600">📍 มี GPS</span>'
+      : '<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:#f1f5f9;color:#94a3b8;font-weight:600">❓ ไม่มี GPS</span>';
+    var btns=c.gps_lat
+      ? '<button onclick="event.stopPropagation();openNavSheet('+c.gps_lat+','+c.gps_lng+',\''+c.name.replace(/'/g,'')+'\');" class="btn btn-sm" style="background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;flex-shrink:0"><i class="bi bi-map-fill"></i></button>'
+      : '<button onclick="event.stopPropagation();openGPSModal(\''+c.child_id+'\',\''+c.name.replace(/'/g,'')+'\');" class="btn btn-sm" style="background:#ede9fe;color:#4c1d95;border:none;border-radius:8px;padding:5px 10px;font-size:11px;flex-shrink:0"><i class="bi bi-geo-alt-fill"></i></button>';
+    return '<div class="child-row '+st.bl+'" onclick="openChild(\''+c.child_id+'\')">'+
+      '<div class="child-av" style="background:'+st.av+'">'+initials(c.name)+'</div>'+
+      '<div class="flex-grow-1">'+
+        '<div style="font-size:13px;font-weight:600">'+c.name+'</div>'+
+        '<div class="text-muted" style="font-size:11px">ม.'+c.village_no+' ต.'+c.tambon+' · '+c.age_str+'</div>'+
+        '<div style="margin-top:3px">'+gpsTag+'</div>'+
+      '</div>'+
+      btns+
+    '</div>';
+  }).join('');
+}
+
+/* ── MAP TAB SWITCH ── */
+var _mapIndividual=null,_mapIndCache=[],_mapIndColorFilter='ทั้งหมด';
+
+function switchMapTab(n){
+  var t1=document.getElementById('mapTab1');
+  var t2=document.getElementById('mapTab2');
+  var c1=document.getElementById('mapContent1');
+  var c2=document.getElementById('mapContent2');
+  if(n===1){
+    t1.style.cssText='border-radius:10px;font-size:13px;background:linear-gradient(135deg,#00e5cc,#0097a7);color:#fff;border:none';
+    t2.style.cssText='border-radius:10px;font-size:13px;background:none;color:#64748b;border:none';
+    c1.style.display='';c2.style.display='none';
+    setTimeout(function(){if(_map)_map.invalidateSize();},150);
+  } else {
+    t2.style.cssText='border-radius:10px;font-size:13px;background:linear-gradient(135deg,#00e5cc,#0097a7);color:#fff;border:none';
+    t1.style.cssText='border-radius:10px;font-size:13px;background:none;color:#64748b;border:none';
+    c1.style.display='none';c2.style.display='';
+    setTimeout(function(){
+      if(!_mapIndividual){
+        _mapIndividual=L.map('mapIndividual').setView([6.209,101.488],13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:19}).addTo(_mapIndividual);
+      }
+      _mapIndividual.invalidateSize();
+      loadMapIndividual();
+    },150);
+  }
+}
+
+function loadMapIndividual(){
+  document.getElementById('mapGpsList').innerHTML='<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>';
+  callApi('clientGetChildrenWithGPS',[APP.token,_mapIndColorFilter==='ทั้งหมด'?null:_mapIndColorFilter]).then(function(res){
+    if(!res.success)return;
+    _mapIndCache=res.children||[];
+    renderMapIndividual(_mapIndCache);
+  }).catch(function(){});
+}
+
+function setMapGpsColor(c,el){
+  _mapIndColorFilter=c;
+  document.querySelectorAll('#mapGpsChips .chip').forEach(function(x){x.classList.toggle('dim',x!==el);});
+  el.classList.remove('dim');
+  loadMapIndividual();
+}
+
+function renderMapIndividual(children){
+  var MAP_C={'เขียว':'#10b981','เหลืองอ่อน':'#eab308','เหลือง':'#f97316','แดง':'#ef4444'};
+  // clear markers
+  _mapIndividual.eachLayer(function(l){if(l instanceof L.CircleMarker)_mapIndividual.removeLayer(l);});
+  document.getElementById('mapGpsCount').textContent='แสดง '+children.length+' คน (มี GPS)';
+  if(!children.length){
+    document.getElementById('mapGpsList').innerHTML='<div class="empty-st">ไม่มีข้อมูล GPS</div>';
+    return;
+  }
+  // render pins
+  children.forEach(function(c){
+    var col=MAP_C[c.color]||'#94a3b8';
+    var marker=L.circleMarker([c.gps_lat,c.gps_lng],{radius:8,fillColor:col,color:'#fff',weight:2,fillOpacity:.9}).addTo(_mapIndividual);
+    marker.bindPopup(
+      '<div style="font-family:Sarabun,sans-serif;min-width:160px">'+
+      '<b>'+c.name+'</b><br>'+
+      '<small>ม.'+c.village_no+' ต.'+c.tambon+' · '+c.age_str+'</small><br>'+
+      '<button onclick="openNavSheet('+c.gps_lat+','+c.gps_lng+',\''+c.name.replace(/'/g,'')+'\');" '+
+      'style="margin-top:6px;background:#4f46e5;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-family:Sarabun,sans-serif;cursor:pointer">'+
+      '🗺 นำทาง</button>'+
+      '<button onclick="bootstrap.Modal.getInstance(document.getElementById(\'modalChild\'))?.hide();openChild(\''+c.child_id+'\');" '+
+      'style="margin-top:6px;margin-left:4px;background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;font-size:11px;font-family:Sarabun,sans-serif;cursor:pointer">'+
+      '👁 ดู</button>'+
+      '</div>'
+    );
+  });
+  // fit bounds
+  var bounds=children.map(function(c){return[c.gps_lat,c.gps_lng];});
+  if(bounds.length>0)_mapIndividual.fitBounds(bounds,{padding:[30,30]});
+  // render list
+  document.getElementById('mapGpsList').innerHTML=children.map(function(c){
+    var st=ST[c.color]||ST['เขียว'];
+    return '<div class="child-row '+st.bl+'" onclick="openChild(\''+c.child_id+'\')">'+
+      '<div class="child-av" style="background:'+st.av+'">'+initials(c.name)+'</div>'+
+      '<div class="flex-grow-1">'+
+        '<div style="font-size:14px;font-weight:600">'+c.name+'</div>'+
+        '<div class="text-muted" style="font-size:11px">ม.'+c.village_no+' ต.'+c.tambon+' · '+c.age_str+'</div>'+
+      '</div>'+
+      '<button onclick="event.stopPropagation();openNavSheet('+c.gps_lat+','+c.gps_lng+',\''+c.name.replace(/'/g,'')+'\');" '+
+      'class="btn btn-sm" style="background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;flex-shrink:0">'+
+      '<i class="bi bi-map-fill"></i></button>'+
+    '</div>';
+  }).join('');
+}
+
+/* ── GPS + NAV ── */
+var _gpsChildId='',_gpsMap=null,_gpsMarker=null,_gpsLat=null,_gpsLng=null;
+function openGPSModal(childId,childName){
+  _gpsChildId=childId;_gpsLat=null;_gpsLng=null;
+  document.getElementById('gpsCoordDisplay').textContent='ยังไม่ได้เลือก';
+  document.getElementById('gpsSubmitBtn').disabled=true;
+  var mc=bootstrap.Modal.getInstance(document.getElementById('modalChild'));
+  if(mc)mc.hide();
+  setTimeout(function(){
+    new bootstrap.Modal(document.getElementById('modalGPS')).show();
+    setTimeout(function(){
+      if(!_gpsMap){
+        _gpsMap=L.map('gpsMap').setView([6.209,101.488],14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:19}).addTo(_gpsMap);
+        _gpsMap.on('click',function(e){setGPSPin(e.latlng.lat,e.latlng.lng);});
+      }
+      _gpsMap.invalidateSize();
+      if(navigator.geolocation){navigator.geolocation.getCurrentPosition(function(p){_gpsMap.setView([p.coords.latitude,p.coords.longitude],16);},function(){});}
+    },400);
+  },350);
+}
+function setGPSPin(lat,lng){
+  _gpsLat=lat;_gpsLng=lng;
+  if(_gpsMarker)_gpsMap.removeLayer(_gpsMarker);
+  _gpsMarker=L.marker([lat,lng]).addTo(_gpsMap);
+  document.getElementById('gpsCoordDisplay').textContent=lat.toFixed(6)+', '+lng.toFixed(6);
+  document.getElementById('gpsSubmitBtn').disabled=false;
+  // แสดง toast
+  var old=document.getElementById('gpsToast');
+  if(old)old.remove();
+  var toast=document.createElement('div');
+  toast.id='gpsToast';
+  toast.textContent='📍 ปักหมุดแล้ว!';
+  document.getElementById('modalGPS').querySelector('.modal-content').appendChild(toast);
+  toast.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4f46e5;color:#fff;padding:8px 20px;border-radius:99px;font-size:13px;font-weight:700;z-index:99999;box-shadow:0 4px 12px rgba(79,70,229,.4)';
+  setTimeout(function(){if(toast.parentNode)toast.remove();},2500);
+}
+function clearGPSPin(){
+  _gpsLat=null;_gpsLng=null;
+  if(_gpsMarker){_gpsMap.removeLayer(_gpsMarker);_gpsMarker=null;}
+  document.getElementById('gpsCoordDisplay').textContent='ยังไม่ได้เลือก';
+  document.getElementById('gpsSubmitBtn').disabled=true;
+}
+function useMyLocation(){
+  if(!navigator.geolocation){alert('เบราว์เซอร์ไม่รองรับ GPS');return;}
+  navigator.geolocation.getCurrentPosition(function(p){
+    _gpsMap.setView([p.coords.latitude,p.coords.longitude],17);
+    setGPSPin(p.coords.latitude,p.coords.longitude);
+  },function(){alert('ไม่สามารถดึงตำแหน่งได้');});
+}
+function submitGPS(){
+  if(!_gpsLat||!_gpsLng)return;
+  var btn=document.getElementById('gpsSubmitBtn');
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>บันทึก...';
+  btn.disabled=true;
+  callApi('clientSaveChildGPS',[APP.token,_gpsChildId,_gpsLat,_gpsLng]).then(function(res){
+    btn.innerHTML='<i class="bi bi-geo-alt-fill me-2"></i>บันทึก GPS บ้านนี้';
+    btn.disabled=false;
+    if(res.success){
+      alert('บันทึก GPS สำเร็จ');
+      var mg=bootstrap.Modal.getInstance(document.getElementById('modalGPS'));
+      if(mg)mg.hide();
+      setTimeout(function(){openChild(_gpsChildId);},300);
+    }else{alert('Error: '+(res.error||''));}
+  }).catch(function(e){
+    btn.innerHTML='<i class="bi bi-geo-alt-fill me-2"></i>บันทึก GPS บ้านนี้';
+    btn.disabled=false;
+    alert('Error: '+e.message);
+  });
+}
+function openNavSheet(lat,lng,name){
+  var isIOS=(/iPad|iPhone|iPod/.test(navigator.userAgent));
+  var dest=lat+','+lng;
+  var gmaps='https://www.google.com/maps/dir/?api=1&destination='+dest;
+  var apple='maps://maps.apple.com/?daddr='+dest;
+  if(isIOS){
+    if(confirm('นำทางไปบ้าน '+name+'\nOK = Apple Maps\nCancel = Google Maps')){
+      window.open(apple,'_blank');
+    }else{window.open(gmaps,'_blank');}
+  }else{window.open(gmaps,'_blank');}
+}
+
+// Close sidebar
+document.addEventListener('click',e=>{const s=document.getElementById('sidebar');if(s.classList.contains('show')&&!s.contains(e.target)&&!e.target.closest('#mobileBar'))s.classList.remove('show');});
+</script></body></html>
