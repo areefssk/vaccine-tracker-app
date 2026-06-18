@@ -2167,7 +2167,7 @@ function renderAsmMap(children){
 }
 
 /* ── MAP TAB SWITCH ── */
-var _mapIndividual=null,_mapIndCache=[],_mapIndColorFilter='ทั้งหมด';
+var _mapIndividual=null,_mapIndCache=[],_mapIndColorFilter='ทั้งหมด',_mapIndStreetLayer=null,_mapIndSatLayer=null;
 
 function switchMapTab(n){
   var t1=document.getElementById('mapTab1');
@@ -2186,7 +2186,27 @@ function switchMapTab(n){
     setTimeout(function(){
       if(!_mapIndividual){
         _mapIndividual=L.map('mapIndividual').setView([6.209,101.488],13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:19}).addTo(_mapIndividual);
+        _mapIndStreetLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:19});
+        _mapIndSatLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19});
+        _mapIndStreetLayer.addTo(_mapIndividual);
+        var indToggleBox=L.control({position:'topright'});
+        indToggleBox.onAdd=function(){
+          var div=L.DomUtil.create('div','map-toggle-box');
+          div.innerHTML='<button class="map-toggle-btn active" id="btnIndStreet">🛣️ ถนน</button><button class="map-toggle-btn" id="btnIndSat">🛰️ ดาวเทียม</button>';
+          L.DomEvent.disableClickPropagation(div);
+          return div;
+        };
+        indToggleBox.addTo(_mapIndividual);
+        document.getElementById('btnIndStreet').onclick=function(){
+          _mapIndividual.removeLayer(_mapIndSatLayer);_mapIndStreetLayer.addTo(_mapIndividual);
+          document.getElementById('btnIndStreet').classList.add('active');
+          document.getElementById('btnIndSat').classList.remove('active');
+        };
+        document.getElementById('btnIndSat').onclick=function(){
+          _mapIndividual.removeLayer(_mapIndStreetLayer);_mapIndSatLayer.addTo(_mapIndividual);
+          document.getElementById('btnIndSat').classList.add('active');
+          document.getElementById('btnIndStreet').classList.remove('active');
+        };
       }
       _mapIndividual.invalidateSize();
       loadMapIndividual();
