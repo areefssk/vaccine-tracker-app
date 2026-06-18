@@ -92,6 +92,9 @@ html,body{margin:0;padding:0;height:100%;font-family:'Sarabun',Tahoma,sans-serif
 .child-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
 /* ── Coverage bar ── */
 .cov-bar{height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.map-toggle-box{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.15);padding:4px;display:flex;gap:2px}
+.map-toggle-btn{border:none;background:transparent;color:#64748b;font-size:12px;padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:5px}
+.map-toggle-btn.active{background:#0097a7;color:#fff}
 .cov-fill{height:100%;border-radius:4px;transition:width .6s}
 /* ── Login ── */
 #loginPage{background:linear-gradient(135deg,#003344 0%,#005566 45%,#0097a7 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden}
@@ -1758,10 +1761,31 @@ let _map=null,_mapLoaded=false;
 const TAMBON_COORDS={'ซากอ':[6.215245,101.509062],'ศรีสาคร':[6.208949,101.488183],'กาหลง':[6.216819,101.437242],'ตะมะรังสา':[5.995,101.820],'เชิงเขา':[6.080,101.875]};
 const MAP_COLOR={'เขียว':'#10b981','เหลืองอ่อน':'#eab308','เหลือง':'#f97316','แดง':'#ef4444'};
 
+var _streetLayer=null,_satLayer=null;
 function initMap(){
   if(_map)return;
   _map=L.map('mapContainer').setView([6.209,101.488],12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(_map);
+  _streetLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19});
+  _satLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:19});
+  _streetLayer.addTo(_map);
+  var toggleBox=L.control({position:'topright'});
+  toggleBox.onAdd=function(){
+    var div=L.DomUtil.create('div','map-toggle-box');
+    div.innerHTML='<button class="map-toggle-btn active" id="btnMapStreet">🛣️ ถนน</button><button class="map-toggle-btn" id="btnMapSat">🛰️ ดาวเทียม</button>';
+    L.DomEvent.disableClickPropagation(div);
+    return div;
+  };
+  toggleBox.addTo(_map);
+  document.getElementById('btnMapStreet').onclick=function(){
+    _map.removeLayer(_satLayer);_streetLayer.addTo(_map);
+    document.getElementById('btnMapStreet').classList.add('active');
+    document.getElementById('btnMapSat').classList.remove('active');
+  };
+  document.getElementById('btnMapSat').onclick=function(){
+    _map.removeLayer(_streetLayer);_satLayer.addTo(_map);
+    document.getElementById('btnMapSat').classList.add('active');
+    document.getElementById('btnMapStreet').classList.remove('active');
+  };
 }
 function loadMapData(){
   initMap();if(_mapLoaded)return;
@@ -2232,7 +2256,7 @@ function renderMapIndividual(children){
 }
 
 /* ── GPS + NAV ── */
-var _gpsChildId='',_gpsMap=null,_gpsMarker=null,_gpsLat=null,_gpsLng=null;
+var _gpsChildId='',_gpsMap=null,_gpsMarker=null,_gpsLat=null,_gpsLng=null,_gpsStreetLayer=null,_gpsSatLayer=null;
 function openGPSModal(childId,childName){
   _gpsChildId=childId;_gpsLat=null;_gpsLng=null;
   document.getElementById('gpsCoordDisplay').textContent='ยังไม่ได้เลือก';
@@ -2244,7 +2268,27 @@ function openGPSModal(childId,childName){
     setTimeout(function(){
       if(!_gpsMap){
         _gpsMap=L.map('gpsMap').setView([6.209,101.488],14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:19}).addTo(_gpsMap);
+        _gpsStreetLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:19});
+        _gpsSatLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri',maxZoom:19});
+        _gpsStreetLayer.addTo(_gpsMap);
+        var gpsToggleBox=L.control({position:'topright'});
+        gpsToggleBox.onAdd=function(){
+          var div=L.DomUtil.create('div','map-toggle-box');
+          div.innerHTML='<button class="map-toggle-btn active" id="btnGpsStreet">🛣️</button><button class="map-toggle-btn" id="btnGpsSat">🛰️</button>';
+          L.DomEvent.disableClickPropagation(div);
+          return div;
+        };
+        gpsToggleBox.addTo(_gpsMap);
+        document.getElementById('btnGpsStreet').onclick=function(){
+          _gpsMap.removeLayer(_gpsSatLayer);_gpsStreetLayer.addTo(_gpsMap);
+          document.getElementById('btnGpsStreet').classList.add('active');
+          document.getElementById('btnGpsSat').classList.remove('active');
+        };
+        document.getElementById('btnGpsSat').onclick=function(){
+          _gpsMap.removeLayer(_gpsStreetLayer);_gpsSatLayer.addTo(_gpsMap);
+          document.getElementById('btnGpsSat').classList.add('active');
+          document.getElementById('btnGpsStreet').classList.remove('active');
+        };
         _gpsMap.on('click',function(e){setGPSPin(e.latlng.lat,e.latlng.lng);});
       }
       _gpsMap.invalidateSize();
